@@ -1,0 +1,9 @@
+#number of TF relation
+1
+#TF relation
+1 2
+# number of layer
+2
+#thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
+10. 300. 1500. 30.
+0. 1000. 1500. 5000.
