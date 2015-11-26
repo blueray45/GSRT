@@ -7,15 +7,47 @@ Created on Thu Nov 26 19:55:33 2015
 
 # exporting external helper module
 import numpy as np
+import pylab as plt
 
 # test IOfile
 import IOfile
-import sh_tf_fix
+from TFCalculator import TFCalculator as TFC
 
 fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
-mode = 'linear-elastic'
+mode1 = 'linear-elastic'
+mode2 = 'linear-viscoelastic'
 
-data = IOfile.parsing_input_file(fname,mode)
-freq = np.linspace(0.1,50.,100)
-#tf = sh_tf_fix.sh_tf_fix(hl,vs,dn,qs,freq)
+data = IOfile.parsing_input_file(fname,mode2)
+
 print data
+print('data reading was OK! proceed!')
+
+print 'creating class'
+theclass = TFC(data)
+print 'class creation was succeed! proceed!'
+
+print 'TF calculatoin using kramer approach'
+tf1 = theclass.tf_kramer286_sh() # check/verufy kramer calculation
+print 'calculation was succeed!'
+
+plt.plot(theclass.freq,np.abs(tf1[0]),'b',label='kramer286')
+
+print 'TF calculation using simple knopoff approach'
+tf2 = theclass.tf_knopoff_sh()
+print 'calculation has been finished!'
+
+plt.plot(theclass.freq,np.abs(tf2[0]),'r--',label='knopoff sh')
+
+
+
+
+
+
+
+plt.xlabel('frequency (Hz)')
+plt.ylabel('Amplification')
+plt.yscale('log')
+plt.xscale('log')
+plt.xlim(1.,50.)
+plt.ylim(0.8,10.)
+plt.legend()
