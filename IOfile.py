@@ -75,7 +75,6 @@ def parsing_input_file(fname):
                             stfPair = blockreader(blockSeq[IDSeq],line)
                             tfPair.append(stfPair)
                             TFID+=1
-                            print TFID
                             if TFID>data['ntf']:
                                 data['tfPair']=tfPair
                                 IDSeq+=1
@@ -100,10 +99,6 @@ def parsing_input_file(fname):
         #elif :
         #    print('not implemented! Sorry!')
         else:
-            print (mode.lower()==cd.mode[0] or mode.lower()==cd.mode[1]), \
-                (mode.lower()==cd.mode[2] or mode.lower()==cd.mode[3])
-            print len(mode.lower()),len(cd.mode[0])
-            print mode.lower(),cd.mode[0]
             raise ValueError('mode is not supported!')
             
 def comment_check(stringinput):
