@@ -8,16 +8,17 @@ Created on Thu Nov 26 19:55:33 2015
 # exporting external helper module
 import numpy as np
 import pylab as plt
+import commondata as cd
 
 # test IOfile
 import IOfile
 from TFCalculator import TFCalculator as TFC
 
-fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
-mode1 = 'linear-elastic'
-mode2 = 'linear-viscoelastic'
+fname = 'sampleinput_linear_elastic_6layer_halfspace.dat'
+mode1 = cd.mode[0]
+mode2 = cd.mode[1]
 
-data = IOfile.parsing_input_file(fname,mode2)
+data = IOfile.parsing_input_file(fname)
 
 print data
 print('data reading was OK! proceed!')
@@ -38,10 +39,11 @@ print 'calculation has been finished!'
 
 plt.plot(theclass.freq,np.abs(tf2[0]),'r--',label='knopoff sh')
 
+print 'TF calculation using complete knopoff approach'
+tf3 = theclass.tf_knopoff_sh_adv()
+print 'Done! Amazing!'
 
-
-
-
+plt.plot(theclass.freq,np.abs(tf3[0]),'g-.',lw=4.,label='knopoff sh complete')
 
 
 plt.xlabel('frequency (Hz)')
@@ -50,4 +52,5 @@ plt.yscale('log')
 plt.xscale('log')
 plt.xlim(1.,50.)
 plt.ylim(0.8,10.)
-plt.legend()
+plt.grid(True,which='both')
+plt.legend(loc='best',fancybox=True,framealpha=0.5)

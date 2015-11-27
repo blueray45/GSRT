@@ -5,7 +5,10 @@ Common lists used on GSRT
 @author: irnakat
 """
 
-mode = ['linear-elastic',
-         'linear-viscoelastic',
-         'linear-equivalent',
-         'non-linear']
+mode = ['sh-linear-elastic',
+        'sh-linear-viscoelastic',
+        'sh-linear-elastic-adv',
+        'sh-linear-viscoelastic-adv',
+        'linear-equivalent',
+        'non-linear']
+        

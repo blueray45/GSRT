@@ -15,9 +15,14 @@ ricker.dat ascii
 #number of TF relation
 1
 #TF relation (top layer, bottom layer)
-1 2
+1 7
 # number of layer
-2
+7
 #thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
-10. 300. 1500. 30.
+10. 100. 1500. 30.
+15. 125. 1500. 30.
+10. 200. 1500. 30.
+40. 500. 1500. 30.
+50. 500. 1500. 30.
+20. 700. 1500. 30.
 0. 1000. 1500. 5000.
