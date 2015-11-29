@@ -5,7 +5,7 @@
 #       'sh-linear-viscoelastic-adv'
 #       'linear-equivalent'
 #       'non-linear'
-sh-linear-viscoelastic
+psv-s-linear-viscoelastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
 ricker.dat ascii
 # angle of indicidence (degree)
@@ -18,6 +18,6 @@ ricker.dat ascii
 1 2
 # number of layer
 2
-#thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
-10. 300. 1500. 30.
-0. 1000. 1500. 5000.
+#thickness(m) Vp(m/s^2) Vs(m/s^2) rho(kg/m^3) Qs
+10. 1500.  300.  1500.    30.   50.
+ 0. 3000. 1000.  1500.  5000. 5000.

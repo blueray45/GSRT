@@ -15,6 +15,7 @@ import IOfile
 from TFCalculator import TFCalculator as TFC
 
 fname = 'sampleinput_linear_elastic_6layer_halfspace.dat'
+fname = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
 mode1 = cd.mode[0]
 mode2 = cd.mode[1]
 
@@ -43,7 +44,17 @@ print 'TF calculation using complete knopoff approach'
 tf3 = theclass.tf_knopoff_sh_adv()
 print 'Done! Amazing!'
 
-plt.plot(theclass.freq,np.abs(tf3[0]),'g-.',lw=4.,label='knopoff sh complete')
+plt.plot(theclass.freq,np.abs(tf3[0]),'g--',lw=4.,label='knopoff sh complete')
+
+fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
+data2 = IOfile.parsing_input_file(fname2)
+print 'creating class'
+theclass2 = TFC(data2)
+print 'class creation was succeed! proceed!'
+print 'TF calculation using complete knopoff approach'
+htf4,vtf4 = theclass.tf_knopoff_psv_adv()
+print 'Done! Amazing!'
+plt.plot(theclass2.freq,np.abs(htf4[0]),'r-.',lw=2.,label='knopoff psv-s complete')
 
 
 plt.xlabel('frequency (Hz)')

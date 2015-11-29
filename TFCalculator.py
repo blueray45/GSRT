@@ -22,6 +22,14 @@ class TFCalculator:
         self.qs = np.array(data['qs'])          # quality factor
         self.slayer = data['sourceloc']
         self.iang = data['iang']
+
+        if self.mode==cd.mode[4] or self.mode==cd.mode[5] or \
+            self.mode==cd.mode[6] or self.mode==cd.mode[7]:
+                
+            self.vp = np.array(data['vp'])
+            self.qp = np.array(data['qp'])
+            self.comp = np.array(data['comp'])
+        
         self.freq = np.linspace(1.,50.,1024)
         
     def tf_kramer286_sh(self):
@@ -286,4 +294,290 @@ class TFCalculator:
             tf.append(tft)
         return tf
         
+    def tf_knopoff_sh_adv(self):
+        """
         
+        """
+        from numpy import zeros,exp
+        from numpy.linalg import solve
+        import numpy as np
+        
+        # uniforming variable
+        mode = self.mode
+        ntf = self.ntf
+        tfpair = self.tfpair
+        nlayer = self.nlayer
+        hl = self.hl
+        vs = self.vs
+        dn = self.dn
+        qs = self.qs
+        freq = self.freq
+        
+        # checking calculation validity
+        #if mode != cd.mode[0] and mode!=cd.mode[1]:
+        #    raise ValueError("Calculation mode is not supported! Use another method!")
+        
+        # number of layer and frequencies
+        nlayer = len(hl)
+        fnum = len(freq)
+        
+        # angular frequencies conversion
+        angf = 2.*np.pi*freq
+        
+        # elastic parameters
+        
+        # attenuation using complex velocities
+        vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
+        
+        # modulus of rigidity
+        mu = dn*(vs**2)
+        
+        # slowness parameter    
+        ns = 1./vs
+        
+        # arays initialization
+        tf = zeros((fnum,1))
+        
+        # data vectors
+        Ds = zeros((nlayer*2,1))
+        Ds[-1] = 1.
+        
+        # building core matrix
+        CORE = zeros((nlayer*2,nlayer*2),dtype='complex64')
+        
+        # free surface constraints
+        
+        CORE[0,0] = 1
+        CORE[0,1] = 1
+        
+        # interfaces constraints
+        for nl in range(nlayer-1):
+            row = ((nl)*2)+1
+            col = ((nl)*2)
+            CORE[row+0,col+2] = 1
+            CORE[row+0,col+3] = -1
+            CORE[row+1,col+2] = -mu[nl+1]*ns[nl+1]
+            CORE[row+1,col+3] = -mu[nl+1]*ns[nl+1]
+            
+        # input constraints
+        CORE[-1,-1] = 1
+            
+        # loop over frequencies and number of tfpair
+        tf = []
+        for tfp in range(ntf):
+            tft = np.zeros((fnum,1),dtype='complex64')
+            for nf in range(fnum):
+                #----------------------------------------------
+                # Interfaces Constraints
+                
+                for nl in range(nlayer-1):
+                    row = (nl*2)+1
+                    col = (nl*2)
+                    
+                    expDSA = exp(1j*angf[nf]*ns[nl]*hl[nl])
+                    expUSA = exp(-1j*angf[nf]*ns[nl]*hl[nl])
+                    CORE[row+0,col+0] = -expDSA
+                    CORE[row+0,col+1] = expUSA
+                    CORE[row+1,col+0] = mu[nl]*ns[nl]*expDSA
+                    CORE[row+1,col+1] = mu[nl]*ns[nl]*expUSA
+                    
+                # solving linear system
+                As = solve(CORE,Ds)
+                
+                # transfer function
+                tft[nf] = (As[tfpair[tfp][0]*2+1]-As[tfpair[tfp][0]*2])/ \
+                    (2.*As[tfpair[tfp][1]*2+1])
+                    
+            tf.append(tft)
+        return tf
+        
+    def tf_knopoff_psv_adv(self):
+        """
+        
+        """
+        from numpy.linalg import solve
+        # uniforming variable
+        mode = self.mode
+        ntf = self.ntf
+        tfpair = self.tfpair
+        nlayer = self.nlayer
+        hl = self.hl
+        vs = self.vs
+        dn = self.dn
+        qs = self.qs
+        freq = self.freq
+        vp = self.vp
+        qp = self.qp
+        comp = self.comp
+        
+        # checking calculation validity
+        #if mode != cd.mode[2] and mode!=cd.mode[3]:
+        #    raise ValueError("Calculation mode is not supported! Use another method!")
+        
+        # angular frequency conversion
+        angf = 2.*np.pi*freq
+        
+        # attenuation using complex velocities
+        vp = vp*((2.*qp*1j)/(2.*qp*1j-1.))
+        vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
+        
+        # angle of propagation within layers
+        slayer = self.slayer
+        iang = self.iang
+        
+        iD = np.zeros((nlayer*2),dtype='complex64')
+        iCORE = np.zeros((nlayer*2,nlayer*2),dtype='complex64')
+        
+        if comp=='p':
+            iD[0] = np.sin(iang)
+            iD[1] = np.sin(iang)*vs[slayer]/vp[slayer]
+        elif comp=='s':
+            iD[0] = np.sin(iang)*vp[slayer]/vs[slayer]
+            iD[1] = np.sin(iang)
+            
+        iCORE[0,2*slayer] = 1. # check the index
+        iCORE[1,2*slayer+1] = 1.
+        
+        for nl in range(nlayer-1):
+            
+            row = nl*2
+            col = nl*2
+            
+            iCORE[row+2,col+0] = 1./vp[nl]
+            iCORE[row+2,col+2] = -1./vp[nl+1]
+            
+            iCORE[row+3,col+1] = 1/vs[nl]
+            iCORE[row+3,col+3] = -1/vs[nl+1]
+            
+        iA = solve(iCORE,iD)
+
+        iP = np.zeros((nlayer),dtype='complex64')
+        iS = np.zeros((nlayer),dtype='complex64')
+        
+        for i in range(nlayer):
+            row = nl*2
+            iP[nl] = np.arcsin(iA[row])            
+            iS[nl] = np.arcsin(iA[row+1])
+        
+        # Lame Parameter(s)
+        mu = np.zeros((nlayer),dtype='complex64')
+        la = np.zeros((nlayer),dtype='complex64')
+        
+        for nl in range(nlayer):
+            mu[nl]=dn[nl]*(vs[nl]**2)
+            la[nl]=dn[nl]*((vp[nl]**2)-(2.*(vs[nl]**2)))            
+        
+        # horizontal and vertical slowness
+        rp = np.zeros((nlayer),dtype='complex64')
+        rs = np.zeros((nlayer),dtype='complex64')
+        np1 = np.zeros((nlayer),dtype='complex64')
+        ns = np.zeros((nlayer),dtype='complex64')
+        
+        for nl in range(nlayer):
+            rp[nl] = np.sin(iP[nl])/vp[nl]
+            rs[nl] = np.sin(iS[nl])/vs[nl]
+            np1[nl] = np.cos(iP[nl])/vp[nl]
+            ns[nl] = np.cos(iS[nl])/vs[nl]
+        
+        # building data vector
+        A = np.zeros((nlayer*4),dtype='complex64')
+        D = np.zeros((nlayer*4),dtype='complex64')
+        
+        if comp=='p':
+            D[-2] = vp[-1]
+        elif comp=='s':
+            D[-1] = vs[-1]
+        
+        # Dispacement and transfer function initialization
+        
+        fnum = len(freq)
+        
+        # loop over frequencies and tfpair
+        htf = []; vtf = []
+        for tfp in range(ntf):
+            htft = np.zeros((fnum),dtype='complex64')
+            vtft = np.zeros((fnum),dtype='complex64')
+            for nf in range(fnum):
+                # building core matrix
+                CORE = np.zeros((nlayer*4,nlayer*4),dtype='complex64')
+                
+                # free surface constraints
+                CORE[0,0] = la[0]*rp[0]**2+(la[0]+2.*mu[0])*np1[0]**2
+                CORE[0,1] = 2.*mu[0]*rs[0]*ns[0]
+                CORE[0,2] = la[0]*rp[0]**2+(la[0]+2.*mu[0])*np1[0]**2
+                CORE[0,3] = -2.*mu[0]*rs[0]*ns[0]
+                
+                CORE[1,0] = -2.*mu[0]*rp[0]*np1[0]
+                CORE[1,1] = -mu[0]*(rs[0]**2-ns[0]**2)
+                CORE[1,2] = 2.*mu[0]*rp[0]*np1[0]
+                CORE[1,3] = -mu[0]*(rs[0]**2-ns[0]**2)
+
+                # Interfaces constraints
+                for nl in range(nlayer-1):
+                    row = (nl*4)+2
+                    col = nl*4
+                    
+                    expDPA = np.exp(1j*angf[nf]*np1[nl]*hl[nl])
+                    expDSA = np.exp(1j*angf[nf]*ns[nl]*hl[nl])
+                    expUPA = np.exp(-1j*angf[nf]*np1[nl]*hl[nl])
+                    expUSA = np.exp(-1j*angf[nf]*ns[nl]*hl[nl])
+                    
+                    CORE[row+0,col+0] = rp[nl]*expDPA
+                    CORE[row+0,col+1] = -ns[nl]*expDSA
+                    CORE[row+0,col+2] = rp[nl]*expUPA
+                    CORE[row+0,col+3] = ns[nl]*expUSA
+                    CORE[row+0,col+4] = -rp[nl+1]
+                    CORE[row+0,col+5] = ns[nl+1]
+                    CORE[row+0,col+6] = -rp[nl+1]
+                    CORE[row+0,col+7] = -ns[nl+1]
+                    
+                    CORE[row+1,col+0] = np1[nl]*expDPA
+                    CORE[row+1,col+1] = rs[nl]*expDSA
+                    CORE[row+1,col+2] = -np1[nl]*expUPA
+                    CORE[row+1,col+3] = rs[nl]*expUSA
+                    CORE[row+1,col+4] = -np1[nl+1]
+                    CORE[row+1,col+5] = -rs[nl+1]
+                    CORE[row+1,col+6] = np1[nl+1]
+                    CORE[row+1,col+7] = -rs[nl+1]
+                    
+                    CORE[row+2,col+0] = (la[nl]*rp[nl]**2+(la[nl]+2.*mu[nl])*np1[nl]**2)*expDPA
+                    CORE[row+2,col+1] = 2.*mu[nl]*rs[nl]*ns[nl]*expDSA
+                    CORE[row+2,col+2] = (la[nl]*rp[nl]**2+(la[nl]+2.*mu[nl])*np1[nl]**2)*expUPA
+                    CORE[row+2,col+3] = -2.*mu[nl]*rs[nl]*ns[nl]*expUSA
+                    CORE[row+2,col+4] = -(la[nl+1]*rp[nl+1]**2+(la[nl+1]+2.*mu[nl+1])*np1[nl+1]**2)
+                    CORE[row+2,col+5] = -2.*mu[nl+1]*rs[nl+1]*ns[nl+1]
+                    CORE[row+2,col+6] = -(la[nl+1]*rp[nl+1]**2+(la[nl+1]+2.*mu[nl+1])*np1[nl+1]**2)
+                    CORE[row+2,col+7] = 2.*mu[nl+1]*rs[nl+1]*ns[nl+1]
+                    
+                    CORE[row+3,col+0] = -2.*mu[nl]*rp[nl]*np1[nl]*expDPA
+                    CORE[row+3,col+1] = -mu[nl]*(rs[nl]**2-ns[nl]**2)*expDSA
+                    CORE[row+3,col+2] = 2.*mu[nl]*rp[nl]*np1[nl]*expUPA
+                    CORE[row+3,col+3] = -mu[nl]*(rs[nl]**2-ns[nl]**2)*expUSA
+                    CORE[row+3,col+4] = 2.*mu[nl+1]*rp[nl+1]*np1[nl+1]
+                    CORE[row+3,col+5] = mu[nl+1]*(rs[nl+1]**2-ns[nl+1]**2)
+                    CORE[row+3,col+6] = -2.*mu[nl+1]*rp[nl+1]*np1[nl+1]
+                    CORE[row+3,col+7] = mu[nl+1]*(rs[nl+1]**2-ns[nl+1]**2)
+                    
+                # input constraints
+                CORE[-2,-2]=1.  # <-- P
+                CORE[-1,-1]=1.  # <-- S
+
+                # solving linear system
+                try:
+                    A=solve(CORE,D)
+                except ValueError:
+                    A[:] = np.nan
+                    
+                # transfer function
+                htft[nf] = (rp[tfpair[tfp][0]]*(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                            ns[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1]))/ \
+                            (2.*(rp[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
+                            ns[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
+                vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                            rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
+                            (2.*(-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
+                            rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
+                    
+            htf.append(htft)
+            vtf.append(vtft)
+        return htf,vtf

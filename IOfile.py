@@ -49,12 +49,22 @@ def parsing_input_file(fname):
                 data['mode'] = mode
                 break
         
+        modeID = cd.mode.index(mode)
+        
         hl = []; vs = []; dn = []; qs = []
+        vp = []; qp = [];
         tfPair = []
         layerID=1; TFID=1
-        if mode.lower()==cd.mode[0] or mode.lower()==cd.mode[1] or \
-            mode.lower()==cd.mode[2] or mode.lower()==cd.mode[3]:
-            blockSeq = [1,2,3,4,5,6,7,8]
+        #if mode.lower()==cd.mode[0] or mode.lower()==cd.mode[1] or \
+        #    mode.lower()==cd.mode[2] or mode.lower()==cd.mode[3] or\
+        #    mode.lower()==cd.mode[4] or mode.lower()==cd.mode[5] or \
+        #    mode.lower()==cd.mode[6] or mode.lower()==cd.mode[7]:
+        print modeID
+        if modeID<8:
+            if modeID<4:
+                blockSeq = [1,2,3,4,5,6,7,8]
+            elif modeID<8:
+                blockSeq = [1,2,3,4,5,6,7,9]
             IDSeq = 1
             for line in f:
                 if not comment_check(line):
@@ -87,13 +97,32 @@ def parsing_input_file(fname):
                             hl.append(shl)
                             vs.append(svs)
                             dn.append(sdn)
-                            qs.append(9999. if mode.lower()==cd.mode[0] or mode.lower()==cd.mode[2] else sqs)
+                            qs.append(9999. if modeID==0 or modeID==2 else sqs)
                             layerID+=1
                             if layerID>data['nlayer']:
                                 data['hl']=hl
                                 data['vs']=vs
                                 data['dn']=dn
                                 data['qs']=qs
+                                IDSeq+=1
+                    elif blockSeq[IDSeq]==9:
+                        if layerID<=data['nlayer']:
+                            shl,svp,svs,sdn,sqp,sqs = blockreader(blockSeq[IDSeq],line)
+                            hl.append(shl)
+                            vp.append(svp)
+                            vs.append(svs)
+                            dn.append(sdn)
+                            qp.append(9999. if modeID==4 or modeID==6 else sqp)
+                            qs.append(9999. if modeID==4 or modeID==6 else sqs)
+                            layerID+=1
+                            if layerID>data['nlayer']:
+                                data['hl']=hl
+                                data['vp']=vp
+                                data['vs']=vs
+                                data['dn']=dn
+                                data['qp']=qp
+                                data['qs']=qs
+                                data['comp']=mode[4].lower()
                                 IDSeq+=1
             return data
         #elif :
@@ -123,3 +152,6 @@ def blockreader(blockID,line):
     elif blockID==8:
         shl,svs,srho,sqs = line.split()
         return float(shl),float(svs),float(srho),float(sqs)
+    elif blockID==9:
+        shl,svp,svs,srho,sqp,sqs = line.split()
+        return float(shl),float(svp),float(svs),float(srho),float(sqp),float(sqs)
