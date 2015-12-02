@@ -20,7 +20,8 @@ mode1 = cd.mode[0]
 mode2 = cd.mode[1]
 
 data = IOfile.parsing_input_file(fname)
-
+f = plt.figure(figsize=(10.,10.))
+ax = f.add_subplot(111)
 print data
 print('data reading was OK! proceed!')
 
@@ -29,29 +30,32 @@ theclass = TFC(data)
 print 'class creation was succeed! proceed!'
 
 print 'TF calculatoin using kramer approach'
-tf1 = theclass.tf_kramer286_sh() # check/verufy kramer calculation
+#tf1 = theclass.tf_kramer286_sh() # check/verufy kramer calculation
 print 'calculation was succeed!'
 
-plt.plot(theclass.freq,np.abs(tf1[0]),'b',label='kramer286')
+#ax.plot(theclass.freq,np.abs(tf1[0]),'b',label='kramer286')
 
 print 'TF calculation using simple knopoff approach'
 tf2 = theclass.tf_knopoff_sh()
 print 'calculation has been finished!'
 
-plt.plot(theclass.freq,np.abs(tf2[0]),'r--',label='knopoff sh')
+ax.plot(theclass.freq,np.abs(tf2[0]),'r',label='knopoff sh')
 
-print 'TF calculation using complete knopoff approach'
-tf3 = theclass.tf_knopoff_sh_adv()
+print 'TF calculation using complete knopoff sh approach'
+fname3 = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
+data3 = IOfile.parsing_input_file(fname3)
+theclass3 = TFC(data3)
+tf3 = theclass3.tf_knopoff_sh_adv()
 print 'Done! Amazing!'
 
-plt.plot(theclass.freq,np.abs(tf3[0]),'g--',lw=4.,label='knopoff sh complete')
+ax.plot(theclass.freq,np.abs(tf3[0]),'g--',lw=4.,label='knopoff sh complete')
 
 fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
 data2 = IOfile.parsing_input_file(fname2)
 print 'creating class'
 theclass2 = TFC(data2)
 print 'class creation was succeed! proceed!'
-print 'TF calculation using complete knopoff approach'
+print 'TF calculation using complete knopoff psv approach'
 htf4,vtf4 = theclass.tf_knopoff_psv_adv()
 print 'Done! Amazing!'
 plt.plot(theclass2.freq,np.abs(htf4[0]),'r-.',lw=2.,label='knopoff psv-s complete')
