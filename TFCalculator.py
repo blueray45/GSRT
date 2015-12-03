@@ -199,7 +199,6 @@ class TFCalculator:
         dn = self.dn
         qs = self.qs
         freq = self.freq
-        print 'angle of incidence '+str(np.degrees(self.iang))
         # checking calculation validity
         #if mode != cd.mode[2] and mode!=cd.mode[3]:
         #    raise ValueError("Calculation mode is not supported! Use another method!")
@@ -495,6 +494,353 @@ class TFCalculator:
         Theodosius Marwan Irnaka (GEM, Pavia, Italy), port to python
         """
         
+        def kenpsv(jcas,ckx,comega,nlayer,th,dn,cvp,cvs):
+            """
+            kennet formalism
+            """
+            from copy import deepcopy
+            
+            # if th[0]=0, given the depth of the interfaces, else given the thickness
+            hc = np.zeros(nlayer)            
+            if th[0]==0.:                
+                for ic in range(nlayer):
+                    hc[ic]=th[ic+1]-th[ic]
+            else:
+                hc = th
+            
+            cwx = deepcopy(ckx)
+            cwx2 = cwx**2
+            omega = deepcopy(comega)
+            
+            # I don't know what's it for deletion maybe an option
+            cka = omega/cvp
+            ckb = omega/cvs
+            ckb2= ckb**2
+            cnu = np.sqrt(cka**2-cwx**2)
+            cgam = np.sqrt(ckb**2-cwx**2)
+            
+            for ic in range(nlayer):
+                cnu[ic] =-cnu[ic] if np.imag(cnu[ic])>0. else cnu[ic]
+                cgam[ic]=-cgam[ic] if np.imag(cnu[ic])>0. else cgam[ic]
+                
+            # calculation of reflection/transmission coefficients matrix and phase shift
+            
+            # coefficient for the convention of PSI (coef) and for TF
+            aki = -1.
+            
+            ru = np.zeros((nlayer,2,2),dtype='complex64')
+            tu = np.zeros((nlayer,2,2),dtype='complex64')
+            rd = np.zeros((nlayer,2,2),dtype='complex64')
+            td = np.zeros((nlayer,2,2),dtype='complex64')
+            rush = np.zeros((nlayer),dtype='complex64')
+            tush = np.zeros((nlayer),dtype='complex64')
+            rdsh = np.zeros((nlayer),dtype='complex64')
+            tdsh = np.zeros((nlayer),dtype='complex64')
+            me1 = np.zeros((nlayer),dtype='complex64')
+            me2 = np.zeros((nlayer),dtype='complex64')
+            if jcas == 0:
+                # coefficient for free surface
+                cf1 = ckb2[0]-2.*cwx2
+                cf2 = cf1**2
+                cf3 = 4.*cnu[0]*cwx2*cgam[0]
+                cdd = cf2+cf3
+                
+                ru[0,0,0] = (-cf2+cf3)/cdd
+                ru[0,1,0] = 4.*cwx*cnu[0]*cf1/cdd*aki
+                ru[0,1,1] = (cf2-cf3)/cdd*aki
+                ru[0,0,1] = 4.*cwx*cgam[0]*cf1/cdd
+                tu[0,0,0] = 0.
+                tu[0,0,1] = 0.
+                tu[0,1,0] = 0.
+                tu[0,1,1] = 0.
+                rush[0] = 1.
+                tush[0] = 0.
+            else:
+                # coefficient for infinite space
+                ru[0,0,0] = 0.
+                ru[0,1,0] = 0.
+                ru[0,1,1] = 0.
+                ru[0,0,1] = 0.
+                tu[0,0,0] = 1.
+                tu[0,0,1] = 0.
+                tu[0,1,0] = 0.
+                tu[0,1,1] = 1.
+                rush[0] = 0.
+                tush[0] = 1.
+                
+            # coefficients at the interfaces between layers
+            for ic in range(1,nlayer):
+                cb1 = cwx2/ckb2[ic-1]
+                cb2 = cwx2/ckb2[ic]
+                ca1d= dn[ic-1]*(1.-2.*cb1)
+                ca2d= dn[ic]*(1.-2.*cb2)
+                ca  = ca2d-ca1d
+                cb  = ca2d+2.*dn[ic-1]*cb1
+                cc  = ca1d*2.*dn[ic]*cb2
+                cd  = 2.*(dn[ic]/ckb2[ic]-dn[ic-1]/ckb2[ic-1])
+                ce  = cb*cnu[ic-1]+cc*cnu[ic]
+                cf  = cb*cgam[ic-1]+cc*cgam[ic]
+                cg  = ca-cd*cnu[ic-1]*cgam[ic]
+                ch  = ca-cd*cnu[ic]*cgam[ic-1]
+                cdd = ce*cf+cg*ch*cwx2
+                
+                rd[ic,0,0] = (cf*(cb*cnu[ic-1]-cc*cnu[ic])- \
+                    ch*cwx2*(ca+cd*cnu[ic-1]*cgam[ic]))/cdd
+                rd[ic,0,1] =-2.*cwx*cgam[ic-1]* \
+                    (ca*cb+cc*cd*cnu[ic]*cgam[ic])/cdd*aki
+                rd[ic,1,1] =-(ce*(cb*cgam[ic-1]-cc*cgam[ic])- \
+                    cg*cwx2*(ca+cd*cnu[ic]*cgam[ic-1]))/cdd*aki
+                rd[ic,1,0] =-2.*cwx*cnu[ic-1]* \
+                    (ca*cb+cc*cd*cnu[ic]*cgam[ic])/cdd
+                td[ic,0,0] = 2.*dn[ic-1]*cnu[ic-1]*cf/cdd
+                td[ic,0,1] =-2.*dn[ic-1]*cgam[ic-1]*cg*cwx/cdd*aki
+                td[ic,1,1] = 2.*dn[ic-1]*cgam[ic-1]*ce/cdd
+                td[ic,1,0] = 2.*dn[ic-1]*cnu[ic-1]*ch*cwx/cdd*aki
+                
+                ru[ic,0,0] =-(cf*(cb*cnu[ic-1]-cc*cnu[ic])+ \
+                    cg*cwx2*(ca+cd*cnu[ic]*cgam[ic-1]))/cdd
+                ru[ic,0,1] = 2.*cwx*cgam[ic]* \
+                    (ca*cc+cb*cd*cd*cnu[ic-1]*cgam[ic-1])/cdd
+                ru[ic,1,1] = (ce*(cb*cgam[ic-1]-cc*cgam[ic])+ \
+                    ch*cwx2*(ca+cd*cnu[ic-1]*cgam[ic]))/cdd*aki
+                ru[ic,1,0] = 2.*cwx*cnu[ic]* \
+                    (ca*cc+cb*cd*cnu[ic-1]*cgam[ic-1])/cdd*aki
+                tu[ic,0,0] = 2.*dn[ic]*cnu[ic]*cf/cdd
+                tu[ic,0,1] = 2.*dn[ic]*cgam[ic]*ch*cwx/cdd
+                tu[ic,1,1] = 2.*dn[ic]*cgam[ic]*ce/cdd
+                tu[ic,1,0] =-2.*dn[ic]*cnu[ic]*cg*cwx/cdd
+                
+                me1[ic-1] = np.exp(-1j*cnu[ic-1]*hc[ic-1])
+                me2[ic-1] = np.exp(-1j*cgam[ic-1]*hc[ic-1])
+                
+                cs1 = dn[ic-1]/ckb2[ic-1]*cgam[ic-1]
+                cs2 = dn[ic]/ckb2[ic]*cgam[ic]
+                cdelt= cs1+cs2
+                
+                rush[ic] = (cs2-cs1)/cdelt
+                rdsh[ic] =-rush[ic]
+                tush[ic] = 2.*cs2/cdelt
+                tdsh[ic] = 2.*cs1/cdelt
+            
+            # calculation of reflectivity matrix : mt(), mb(), nt() nb()
+            
+            # calculation for the layers above the source
+            nc = deepcopy(nlayer)
+            nt   = np.zeros((nlayer,2,2),dtype='complex64')
+            mt   = np.zeros((nlayer,2,2),dtype='complex64')
+            ntsh = np.zeros((nlayer),dtype='complex64')
+            mtsh = np.zeros((nlayer),dtype='complex64')
+            fdo  = np.zeros((nlayer,2,2),dtype='complex64')
+            fup  = np.zeros((nlayer,2,2),dtype='complex64')
+            fupsh= np.zeros((nlayer),dtype='complex64')
+            fdosh= np.zeros((nlayer),dtype='complex64')
+            nb = np.zeros((2,2),dtype='complex64')
+            mb = np.zeros((2,2),dtype='complex64')
+            
+            nt[0,0,0] = ru[0,0,0]
+            nt[0,0,1] = ru[0,0,1]
+            nt[0,1,0] = ru[0,1,0]
+            nt[0,1,1] = ru[0,1,1]
+            ntsh[0] = rush[0]
+            
+            for ic in range(nc-1):
+                nb[0,0] = me1[ic]*me1[ic]*nt[ic,0,0]
+                nb[0,1] = me1[ic]*me2[ic]*nt[ic,0,1]
+                nb[1,0] = me2[ic]*me1[ic]*nt[ic,1,0]
+                nb[1,1] = me2[ic]*me2[ic]*nt[ic,1,1]
+                nbsh = me2[ic]*me2[ic]*ntsh[ic]
+                
+                ca1 = 1.-(rd[ic+1,0,0]*nb[0,0]+rd[ic+1,0,1]*nb[1,0])
+                ca2 = -(rd[ic+1,0,0]*nb[0,1]+rd[ic+1,0,1]*nb[1,1])
+                ca3 = -(rd[ic+1,1,0]*nb[0,0]+rd[ic+1,1,1]*nb[1,0])
+                ca4 = 1.-(rd[ic+1,1,0]*nb[0,1]+rd[ic+1,1,1]*nb[1,1])
+                cadet = ca1*ca4-ca2*ca3
+                cash = 1./(1.-rdsh[ic+1]*nbsh)      # calculating determinant
+                
+                cb1 = td[ic+1,0,0]*nb[0,0]+td[ic+1,0,1]*nb[1,0]
+                cb2 = td[ic+1,0,0]*nb[0,1]+td[ic+1,0,1]*nb[1,1]
+                cb3 = td[ic+1,1,0]*nb[0,0]+td[ic+1,1,1]*nb[1,0]
+                cb4 = td[ic+1,1,0]*nb[0,1]+td[ic+1,1,1]*nb[1,1]
+                cbsh = tdsh[ic+1]*nbsh
+                
+                cc1 = (ca4*tu[ic+1,0,0]-ca2*tu[ic+1,1,0])/cadet
+                cc2 = (ca4*tu[ic+1,0,1]-ca2*tu[ic+1,1,1])/cadet
+                cc3 = (-ca3*tu[ic+1,0,0]+ca1*tu[ic+1,1,0])/cadet
+                cc4 = (-ca3*tu[ic+1,0,1]+ca1*tu[ic+1,1,1])/cadet
+                ccsh = cash*tush[ic+1]
+                
+                nt[ic+1,0,0] = ru[ic+1,0,0]+cb1*cc1+cb2*cc3
+                nt[ic+1,0,1] = ru[ic+1,0,1]+cb1*cc2+cb2*cc4
+                nt[ic+1,1,0] = ru[ic+1,1,0]+cb3*cc1+cb4*cc3
+                nt[ic+1,1,1] = ru[ic+1,1,1]+cb3*cc2+cb4*cc4
+                ntsh[ic+1] = rush[ic+1]+cbsh*ccsh
+                
+                fup[ic,0,0] = cc1*me1[ic]
+                fup[ic,0,1] = cc2*me1[ic]
+                fup[ic,1,0] = cc3*me2[ic]
+                fup[ic,1,1] = cc4*me2[ic]
+                fupsh[ic] = ccsh*me2[ic]
+            
+            # calculation for the laters below the source
+            
+            mt[nc-1,0,0] = 0.
+            mt[nc-1,0,1] = 0.
+            mt[nc-1,1,0] = 0.
+            mt[nc-1,1,1] = 0.
+            mtsh[nc-1] = 0.
+            
+            for ic in range(nc-2,0,-1):
+                ca1 = 1.-(ru[ic+1,0,0]*mt[ic+1,0,0]+ru[ic+1,0,1]*mt[ic+1,1,0])
+                ca2 = -(ru[ic+1,0,0]*mt[ic+1,0,1]+ru[ic+1,0,1]*mt[ic+1,1,1])
+                ca3 = -(ru[ic+1,1,0]*mt[ic+1,0,0]+ru[ic+1,1,1]*mt[ic+1,1,0])
+                ca4 = 1.-(ru[ic+1,1,0]*mt[ic+1,0,1]+ru[ic+1,1,1]*mt[ic+1,1,1])
+                cadet = ca1*ca4-ca2*ca3
+                cash = 1./(1.-rush[ic+1]*mtsh[ic+1])
+                
+                cb1 = tu[ic+1,0,0]*mt[ic+1,0,0]+tu[ic+1,0,1]*mt[ic+1,1,0]
+                cb2 = tu[ic+1,0,0]*mt[ic+1,0,1]+tu[ic+1,0,1]*mt[ic+1,1,1]
+                cb3 = tu[ic+1,1,0]*mt[ic+1,0,0]+tu[ic+1,1,1]*mt[ic+1,1,0]
+                cb4 = tu[ic+1,1,0]*mt[ic+1,0,1]+tu[ic+1,1,1]*mt[ic+1,1,1]
+                cbsh = tush[ic+1]*mtsh[ic+1]
+                
+                cc1 = (ca4*td[ic+1,0,0]-ca2*td[ic+1,1,0])/cadet
+                cc2 = (ca4*td[ic+1,0,1]-ca2*td[ic+1,1,1])/cadet
+                cc3 = (-ca3*td[ic+1,0,0]+ca1*td[ic+1,1,0])/cadet
+                cc4 = (-ca3*td[ic+1,0,1]+ca1*td[ic+1,1,1])/cadet
+                ccsh = cash*tdsh[ic+1]
+                
+                mb[0,0] = rd[ic+1,0,0]+cb1*cc1+cb2*cc3
+                mb[0,1] = rd[ic+1,0,1]+cb1*cc2+cb2*cc4
+                mb[1,0] = rd[ic+1,1,0]+cb3*cc1+cb4*cc3
+                mb[1,1] = rd[ic+1,1,1]+cb3*cc2+cb4*cc4
+                mbsh = rdsh[ic+1]*cbsh*ccsh
+                
+                mt[ic,0,0] = me1[ic]*me1[ic]*mb[0,0]
+                mt[ic,0,1] = me1[ic]*me2[ic]*mb[0,1]
+                mt[ic,1,0] = me2[ic]*me1[ic]*mb[1,0]
+                mt[ic,1,1] = me2[ic]*me2[ic]*mb[1,1]
+                mtsh[ic] = me2[ic]*me2[ic]*mbsh
+                
+                fdo[ic+1,0,0] = cc1*me1[ic]
+                fdo[ic+1,0,1] = cc2*me2[ic]
+                fdo[ic+1,1,0] = cc3*me1[ic]
+                fdo[ic+1,1,1] = cc4*me2[ic]
+                fdosh[ic+1] = ccsh*me2[ic]
+            
+            # calculation upgoing and downgoing P and S wave for each layer"
+                # - upgoing P wave (jcas = 0) in the layer ln
+                # - upgoing S wave (jcas = 0) in the layer ln
+                # - downgoing P wave (jcas = 1) in the layer ln
+                # - downgoing S wave (jcas = 1) in the layer ln
+            
+            su1=np.array([1.,0.])
+            su2=np.array([0.,1.])
+            
+            # reflect4(jcas)
+            
+            ftup = np.zeros((nlayer,2,2),dtype='complex64')
+            pu = np.zeros((nlayer,2,2),dtype='complex64')
+            pd = np.zeros((nlayer,2,2),dtype='complex64')
+            push = np.zeros((nlayer),dtype='complex64')
+            pdsh = np.zeros((nlayer),dtype='complex64')
+            ftdo = np.zeros((nlayer,2,2),dtype='complex64')
+            ftupsh = np.zeros((nlayer),dtype='complex64')
+            ftdosh = np.zeros((nlayer),dtype='complex64')
+            cfwave = np.zeros((nlayer*4,3),dtype='complex64')
+            if jcas==0:
+                # case jcas=0 free surface reflection
+                ftup[nc-1,0,0] = 1.
+                ftup[nc-1,0,1] = 0.
+                ftup[nc-1,1,0] = 0.
+                ftup[nc-1,1,1] = 1.
+                
+                for ic in range(nc-2,0,-1):
+                    ftup[ic,0,0] = fup[ic,0,0]*ftup[ic+1,0,0]+fup[ic,0,1]*ftup[ic+1,1,0]
+                    ftup[ic,0,1] = fup[ic,0,0]*ftup[ic+1,0,1]+fup[ic,0,1]*ftup[ic+1,1,1]
+                    ftup[ic,1,0] = fup[ic,1,0]*ftup[ic+1,0,0]+fup[ic,1,1]*ftup[ic+1,1,0]
+                    ftup[ic,1,1] = fup[ic,1,0]*ftup[ic+1,0,1]+fup[ic,1,1]*ftup[ic+1,1,1]
+                    ftupsh[ic] = fupsh[ic]*ftupsh[ic+1]
+                    
+                # ???? Vectors potential amount (pu) and down (pd) in each layer receiver for 6 elementary sources
+                # Receivers above the source
+                    
+                for ic in range(nc):
+                    ic1 = 4*ic-3
+                    ic2 = ic1+1
+                    ic3 = ic2+1
+                    ic4 = ic3+1
+                    pu[ic,0,0] = ftup[ic,0,0]
+                    pu[ic,1,0] = ftup[ic,1,0]
+                    pd[ic,0,0] = nt[ic,0,0]*pu[ic,0,0]+nt[ic,0,1]*pu[ic,1,0]
+                    pd[ic,1,0] = nt[ic,1,0]*pu[ic,0,0]+nt[ic,1,1]*pu[ic,1,0]
+                    cfwave[ic1,0] = pu[ic,0,0]
+                    cfwave[ic2,0] = pd[ic,0,0]
+                    cfwave[ic3,0] = pu[ic,1,0]
+                    cfwave[ic4,0] = pd[ic,1,0]
+                    
+                    pu[ic,0,1] = ftup[ic,0,1]
+                    pu[ic,0,1] = ftup[ic,1,1]
+                    pd[ic,0,1] = nt[ic,0,0]*pu[ic,0,1]+nt[ic,0,1]*pu[ic,1,1]
+                    pd[ic,1,1] = nt[ic,1,0]*pu[ic,0,1]+nt[ic,0,1]*pu[ic,1,1]
+                    cfwave[ic1,1] = pu[ic,0,1]
+                    cfwave[ic2,1] = pd[ic,0,1]
+                    cfwave[ic3,1] = pu[ic,1,1]
+                    cfwave[ic4,1] = pd[ic,1,1]
+                    
+                    icsh1 = 2*ic-1
+                    icsh2 = icsh1+1
+                    push[ic] = ftupsh[ic]
+                    pdsh[ic] = ntsh[ic]*push[ic]
+                    cfwave[icsh1,2] = push[ic]
+                    cfwave[icsh2,2] = pdsh[ic]
+            else:
+                # case jcas=1 : no upwave incident
+                ftdo[0,0,0]=1.
+                ftdo[0,0,1]=0.
+                ftdo[0,1,0]=0.
+                ftdo[0,1,1]=1.
+                ftdosh[1]=1.
+                
+                for ic in range(1,nc):
+                    ftdo[ic,0,0] = fdo[ic,0,0]*ftdo[ic-1,0,0]+fdo[ic,0,1]*ftdo[ic-1,1,0]
+                    ftdo[ic,0,1] = fdo[ic,0,0]*ftdo[ic-1,0,1]+fdo[ic,0,1]*ftdo[ic-1,1,1]
+                    ftdo[ic,1,0] = fdo[ic,1,0]*ftdo[ic-1,1,1]+fdo[ic,1,1]*ftdo[ic-1,1,0]
+                    ftdo[ic,1,1] = fdo[ic,1,0]*ftdo[ic-1,0,1]+fdo[ic,1,1]*ftdo[ic-1,1,1]
+                    ftdosh[ic] = fdosh[ic]*ftdosh[ic-1]
+                    
+                for ic in range(nc):
+                    ic1 = 4.*ic-3
+                    ic2 = ic1+1
+                    ic3 = ic2+1
+                    ic4 = ic3+1
+                    
+                    pd[ic,0,0] = ftdo[ic,0,0]
+                    pd[ic,1,0] = ftdo[ic,1,0]
+                    pu[ic,1,0] = mt[ic,0,0]*pd[ic,0,0]+mt[ic,0,1]*pd[ic,1,0]
+                    pu[ic,1,0] = mt[ic,1,0]*pd[ic,0,0]+mt[ic,1,1]*pd[ic,1,0]
+                    cfwave[ic1,0] = pu[ic,0,0]
+                    cfwave[ic2,0] = pd[ic,0,1]
+                    cfwave[ic3,0] = pu[ic,1,0]
+                    cfwave[ic4,0] = pd[ic,1,0]
+                    
+                    pd[ic,0,1] = ftdo[ic,0,1]
+                    pd[ic,1,1] = ftdo[ic,1,1]
+                    pu[ic,0,1] = mt[ic,0,0]*pd[ic,0,1]+mt[ic,0,1]*pd[ic,1,1]
+                    pu[ic,1,1] = mt[ic,1,0]*pd[ic,0,1]+mt[ic,1,1]*pd[ic,1,1]
+                    cfwave[ic1,1] = pu[ic,0,1]
+                    cfwave[ic2,1] = pu[ic,0,1]
+                    cfwave[ic3,1] = pu[ic,1,1]
+                    cfwave[ic4,1] = pu[ic,1,1]
+                    
+                    icsh1 = 2*ic-1
+                    icsh2 = icsh1+1
+                    pdsh[ic] = ftdosh[ic]
+                    push[ic] = mtsh[ic]*pdsh[ic]
+                    cfwave[icsh1,2] = push[ic]
+                    cfwave[icsh2,2] = pdsh[ic]                    
+            
+            return cfwave
+        
         # uniforming variable
         mode = self.mode
         modeID = self.modeID
@@ -544,6 +890,9 @@ class TFCalculator:
         izr = np.array([tfpair[i][1] for i in range(len(tfpair))])
         
         # iterating over frequencies
+        u = np.zeros((nf,nr),dtype='complex64')
+        v = np.zeros((nf,nr),dtype='complex64')
+        w = np.zeros((nf,nr),dtype='complex64')
         for i,fr in enumerate(freq):
             fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
             rw = fr*np.pi*2.
@@ -561,7 +910,10 @@ class TFCalculator:
             # iterating over layers
             cvp = np.zeros_like(vp,dtype='complex64')              
             cvs = np.zeros_like(cvp)
+            wa = np.zeros_like(cvp)
+            wa2 = np.zeros_like(cvp)
             wb = np.zeros_like(cvp)
+            wb2 = np.zeros_like(cvp)
             for li in range(nlayer):
                 qsi = qs[li]*(1.+eq*df)
                 piqs = 1./(np.pi*qsi)
@@ -573,47 +925,84 @@ class TFCalculator:
                 cqp = 1.-0.5*ai/qpi
                 cdp = 1.-piqp*ad
                 cvp[li] = vp[li]/(cdp*cqp)      # complex Vp
-                wb[li] = (omega/vs[li])**2      # omega for vs
-                wa[li] = (omega/vp[li])**2      # oemga for vp
+                wb[li] = omega/vs[li]      # omega for vs
+                wb2[li]= wb[li]**2
+                wa[li] = omega/vp[li]      # oemga for vp
+                wa2[li]= wa[li]**2
             
-            if modeID==9:
-                wx0 = wa[nlayer]*np.sin(iang)
-                mx0 = n*fr*np.sin(iang)/vp[nlayer]
-                c1 = -ai/wa[nlayer]
+            n = 1.
+            if modeID==1:
+                wx0 = wa[nlayer-1]*np.sin(iang)
+                mx0 = n*fr*np.sin(iang)/vp[nlayer-1]
+                c1 = -ai/wa[nlayer-1]
             else:
-                wx0 = wb[nlayer]*np.sin(iang)
-                mx0 = n*fr*np.sin(iang)/vs[nlayer]
-                c1 = ai/wb[nlayer]
+                wx0 = wb[nlayer-1]*np.sin(iang)
+                mx0 = n*fr*np.sin(iang)/vs[nlayer-1]
+                c1 = ai/wb[nlayer-1]
             wx02 = wx0**2
             
-            print cvp,cvs
+            f = kenpsv(jcas,wx0,omega,nlayer,th,dn,cvp,cvs)
             
-            # paused to built another function
-        
-        def kenpsv(jcas,ckx,comega,nlayer,th,dn,cvp,cvs,cfwave):
-            """
-            kennet formalism
-            """
-            from copy import deepcopy
+            # if mode is 1 or 2 :
+            #   1 = upgoing p wave
+            #   2 = downgoing p wave
+            #   3 = upgoing sv wave
+            #   4 = downgoing sv wave
             
-            # if th[0]=0, given the depth of the interfaces, else given the thickness
-            hc = np.zeros(nlayer)            
-            if th[0]==0.:                
-                for ic in range(nlayer):
-                    hc[ic]=th[ic+1]-th[ic]
-            else:
-                hc = th
-            
-            cwx = deepcopy(ckx)
-            cwx2= cwx**2
-            omega = deepcopy(comega)
-            omega2= omega**2
-            
-            
+            # if mode = 3 :
+            #   1 = upgoing sh wave
+            #   2 = downgoing sh wave
+            wza = np.zeros_like(cvp)
+            wzb = np.zeros_like(cvp)
+            for li in range(nlayer):
+                li1 = 4*li-3
+                li2 = li1+1
+                li3 = li2+1
+                li4 = li3+1
+                wza2 = wa2[li] - wx02
+                wzb2 = wb2[li] - wx02
+                wza[li] = np.sqrt(wza2)
+                wzb[li] = np.sqrt(wzb2)
+                wza[li] = -wza[li] if np.imag(wza[li])>0 else wza[li]
+                wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
+                
+            for ir in range(nr):
+                li = izr[ir]
+                li1=4*li-3
+                li2=li1+1
+                li3=li2+1
+                li4=li3+1
+                lish1=2*li-1
+                lish2=lish1+1
+                z=zr[0][ir]-th[li]
+                phaspu=np.exp(1j*wza[li]*z)
+                phassu=np.exp(1j*wzb[li]*z)
+                phaspd=1./phaspu
+                phassd=1./phassu
+                
+                u1 = -1j*wx0
+                u4 = 1j*wzb[li]
+                w1 = 1j*wza[li]
+                modes = mode-1
+                f1 = f[li1,modes]*phaspu
+                f2 = f[li2,modes]*phaspd
+                f3 = f[li3,modes]*phassu
+                f4 = f[li4,modes]*phassd
+                uh0 = u1*(f1+f2) + u4*(f4-f3)
+                uv0 = w1*(f1-f2) + u1*(f3+f4)
+                u[i,ir] = uh0*c1
+                w[i,ir] = uv0*c1
+                v0 = f[lish1,2]*phassu+f[lish2,2]*phassd
+                v[i,ir]=v0
+        return u
 
 # debugging
+"""
 import IOfile
 fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
 data2 = IOfile.parsing_input_file(fname2)
 theclass2 = TFCalculator(data2)
-theclass2.tf_kennett()
+v = theclass2.tf_kennett()
+import pylab as plt
+plt.plot(np.abs(v))
+"""
