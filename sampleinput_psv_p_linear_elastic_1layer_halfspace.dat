@@ -9,7 +9,7 @@ psv-s-linear-viscoelastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
 ricker.dat ascii
 # angle of indicidence (degree)
-45.
+0.
 # location of source
 2
 #number of TF relation
@@ -19,5 +19,5 @@ ricker.dat ascii
 # number of layer
 2
 #thickness(m) Vp(m/s^2) Vs(m/s^2) rho(kg/m^3) Qp Qs
-10. 1500.  300.  1500.    50.   30.
+10. 1500.  300.  1500.    30.   30.
  0. 3000. 1000.  1500.  5000. 5000.

@@ -59,7 +59,7 @@ def parsing_input_file(fname):
         #    mode.lower()==cd.mode[2] or mode.lower()==cd.mode[3] or\
         #    mode.lower()==cd.mode[4] or mode.lower()==cd.mode[5] or \
         #    mode.lower()==cd.mode[6] or mode.lower()==cd.mode[7]:
-        print modeID
+        
         if modeID<8:
             if modeID<4:
                 blockSeq = [1,2,3,4,5,6,7,8]

@@ -323,7 +323,7 @@ class TFCalculator:
         # attenuation using complex velocities
         vp = vp*((2.*qp*1j)/(2.*qp*1j-1.))
         vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
-        
+        print 'vs knopoff',vs
         # angle of propagation within layers
         slayer = self.slayer
         iang = self.iang
@@ -494,7 +494,7 @@ class TFCalculator:
         Theodosius Marwan Irnaka (GEM, Pavia, Italy), port to python
         """
         
-        def kenpsv(jcas,ckx,comega,nlayer,th,dn,cvp,cvs):
+        def kenpsv(jcas,ckx,comega,nlayer,th,dn,cvp,cvs,verbose=False):
             """
             kennet formalism
             """
@@ -502,7 +502,7 @@ class TFCalculator:
             
             # if th[0]=0, given the depth of the interfaces, else given the thickness
             hc = np.zeros(nlayer)            
-            if th[0]==0.:                
+            if th[0]==0.:
                 for ic in range(nlayer):
                     hc[ic]=th[ic+1]-th[ic]
             else:
@@ -514,15 +514,15 @@ class TFCalculator:
             
             # I don't know what's it for deletion maybe an option
             cka = omega/cvp
+            cka2 = cka**2
             ckb = omega/cvs
             ckb2= ckb**2
-            cnu = np.sqrt(cka**2-cwx**2)
-            cgam = np.sqrt(ckb**2-cwx**2)
-            
+            cnu = np.sqrt(cka2-cwx2)
+            cgam = np.sqrt(ckb2-cwx2)
             for ic in range(nlayer):
                 cnu[ic] =-cnu[ic] if np.imag(cnu[ic])>0. else cnu[ic]
                 cgam[ic]=-cgam[ic] if np.imag(cnu[ic])>0. else cgam[ic]
-                
+
             # calculation of reflection/transmission coefficients matrix and phase shift
             
             # coefficient for the convention of PSI (coef) and for TF
@@ -549,25 +549,25 @@ class TFCalculator:
                 ru[0,1,0] = 4.*cwx*cnu[0]*cf1/cdd*aki
                 ru[0,1,1] = (cf2-cf3)/cdd*aki
                 ru[0,0,1] = 4.*cwx*cgam[0]*cf1/cdd
-                tu[0,0,0] = 0.
-                tu[0,0,1] = 0.
-                tu[0,1,0] = 0.
-                tu[0,1,1] = 0.
+                #tu[0,0,0] = 0.
+                #tu[0,0,1] = 0.
+                #tu[0,1,0] = 0.
+                #tu[0,1,1] = 0.
                 rush[0] = 1.
-                tush[0] = 0.
+                #tush[0] = 0.
             else:
                 # coefficient for infinite space
-                ru[0,0,0] = 0.
-                ru[0,1,0] = 0.
-                ru[0,1,1] = 0.
-                ru[0,0,1] = 0.
+                #ru[0,0,0] = 0.
+                #ru[0,1,0] = 0.
+                #ru[0,1,1] = 0.
+                #ru[0,0,1] = 0.
                 tu[0,0,0] = 1.
-                tu[0,0,1] = 0.
-                tu[0,1,0] = 0.
+                #tu[0,0,1] = 0.
+                #tu[0,1,0] = 0.
                 tu[0,1,1] = 1.
-                rush[0] = 0.
+                #rush[0] = 0.
                 tush[0] = 1.
-                
+
             # coefficients at the interfaces between layers
             for ic in range(1,nlayer):
                 cb1 = cwx2/ckb2[ic-1]
@@ -621,7 +621,7 @@ class TFCalculator:
                 rdsh[ic] =-rush[ic]
                 tush[ic] = 2.*cs2/cdelt
                 tdsh[ic] = 2.*cs1/cdelt
-            
+                
             # calculation of reflectivity matrix : mt(), mb(), nt() nb()
             
             # calculation for the layers above the source
@@ -683,13 +683,13 @@ class TFCalculator:
             
             # calculation for the laters below the source
             
-            mt[nc-1,0,0] = 0.
-            mt[nc-1,0,1] = 0.
-            mt[nc-1,1,0] = 0.
-            mt[nc-1,1,1] = 0.
-            mtsh[nc-1] = 0.
-            
-            for ic in range(nc-2,0,-1):
+            #mt[nc-1,0,0] = 0.
+            #mt[nc-1,0,1] = 0.
+            #mt[nc-1,1,0] = 0.
+            #mt[nc-1,1,1] = 0.
+            #mtsh[nc-1] = 0.
+
+            for ic in range(nc-2,-1,-1):
                 ca1 = 1.-(ru[ic+1,0,0]*mt[ic+1,0,0]+ru[ic+1,0,1]*mt[ic+1,1,0])
                 ca2 = -(ru[ic+1,0,0]*mt[ic+1,0,1]+ru[ic+1,0,1]*mt[ic+1,1,1])
                 ca3 = -(ru[ic+1,1,0]*mt[ic+1,0,0]+ru[ic+1,1,1]*mt[ic+1,1,0])
@@ -720,7 +720,8 @@ class TFCalculator:
                 mt[ic,1,0] = me2[ic]*me1[ic]*mb[1,0]
                 mt[ic,1,1] = me2[ic]*me2[ic]*mb[1,1]
                 mtsh[ic] = me2[ic]*me2[ic]*mbsh
-                
+                if verbose:
+                    print mtsh[ic],mbsh,ccsh,cbsh,cash
                 fdo[ic+1,0,0] = cc1*me1[ic]
                 fdo[ic+1,0,1] = cc2*me2[ic]
                 fdo[ic+1,1,0] = cc3*me1[ic]
@@ -750,11 +751,12 @@ class TFCalculator:
             if jcas==0:
                 # case jcas=0 free surface reflection
                 ftup[nc-1,0,0] = 1.
-                ftup[nc-1,0,1] = 0.
-                ftup[nc-1,1,0] = 0.
+                #ftup[nc-1,0,1] = 0.
+                #ftup[nc-1,1,0] = 0.
                 ftup[nc-1,1,1] = 1.
+                ftupsh[nc-1] = 1.
                 
-                for ic in range(nc-2,0,-1):
+                for ic in range(nc-2,-1,-1):
                     ftup[ic,0,0] = fup[ic,0,0]*ftup[ic+1,0,0]+fup[ic,0,1]*ftup[ic+1,1,0]
                     ftup[ic,0,1] = fup[ic,0,0]*ftup[ic+1,0,1]+fup[ic,0,1]*ftup[ic+1,1,1]
                     ftup[ic,1,0] = fup[ic,1,0]*ftup[ic+1,0,0]+fup[ic,1,1]*ftup[ic+1,1,0]
@@ -765,7 +767,7 @@ class TFCalculator:
                 # Receivers above the source
                     
                 for ic in range(nc):
-                    ic1 = 4*ic-3
+                    ic1 = 4*ic
                     ic2 = ic1+1
                     ic3 = ic2+1
                     ic4 = ic3+1
@@ -787,7 +789,7 @@ class TFCalculator:
                     cfwave[ic3,1] = pu[ic,1,1]
                     cfwave[ic4,1] = pd[ic,1,1]
                     
-                    icsh1 = 2*ic-1
+                    icsh1 = 2*ic
                     icsh2 = icsh1+1
                     push[ic] = ftupsh[ic]
                     pdsh[ic] = ntsh[ic]*push[ic]
@@ -796,8 +798,8 @@ class TFCalculator:
             else:
                 # case jcas=1 : no upwave incident
                 ftdo[0,0,0]=1.
-                ftdo[0,0,1]=0.
-                ftdo[0,1,0]=0.
+                #ftdo[0,0,1]=0.
+                #ftdo[0,1,0]=0.
                 ftdo[0,1,1]=1.
                 ftdosh[1]=1.
                 
@@ -809,7 +811,7 @@ class TFCalculator:
                     ftdosh[ic] = fdosh[ic]*ftdosh[ic-1]
                     
                 for ic in range(nc):
-                    ic1 = 4.*ic-3
+                    ic1 = 4*ic
                     ic2 = ic1+1
                     ic3 = ic2+1
                     ic4 = ic3+1
@@ -832,13 +834,18 @@ class TFCalculator:
                     cfwave[ic3,1] = pu[ic,1,1]
                     cfwave[ic4,1] = pu[ic,1,1]
                     
-                    icsh1 = 2*ic-1
+                    icsh1 = 2*ic
                     icsh2 = icsh1+1
                     pdsh[ic] = ftdosh[ic]
                     push[ic] = mtsh[ic]*pdsh[ic]
                     cfwave[icsh1,2] = push[ic]
-                    cfwave[icsh2,2] = pdsh[ic]                    
-            
+                    cfwave[icsh2,2] = pdsh[ic]  
+                    if verbose:
+                        print 'icsh1',icsh1,push[ic],ftdosh[ic]
+                        print 'icsh2',icsh2,pdsh[ic],mtsh[ic]
+                        print ic1,ic2,ic3,ic4
+            if verbose:
+                print 'cfwave',cfwave[:,2]
             return cfwave
         
         # uniforming variable
@@ -863,11 +870,11 @@ class TFCalculator:
         freq0 = 10.         # reference frequency for Q <-- WHY?
         eq = 0.             # ????
         fmin = min(freq)    # use min(freq) instead of 0 on the original code
-        fmax = max(freq)    # 
+        fmax = max(freq)    # use max(freq)
         q = 1.e+20          # ????
         iang = self.iang    # incidence angle (radians)
         mode = 3            # for SH case <-- try for mode 1 and 2 for PSV case later
-        jcas = 0            # jcas
+        jcas = 0            # jcas <-- 0 means with free surface, 1 means infinite medium
         nr = len(tfpair)    # number of receiver given by the pair of input and output motion
         zr = np.array([tfpair[i][0]*hl for i in range(len(tfpair))])
                             # depth of receiver given as list (BEWARE OF INCOMPATIBILITY!!)
@@ -903,46 +910,40 @@ class TFCalculator:
                 phi = np.arctan2(rw,aw)
             else:
                 phi = np.pi/2. if aw>0. else -np.pi/2.
-            ad = adr + ai*phi
+            ad = adr + 1j*phi
             df = fr - freq0
             df = 0. if df<0. else df
             
-            # iterating over layers
-            cvp = np.zeros_like(vp,dtype='complex64')              
-            cvs = np.zeros_like(cvp)
-            wa = np.zeros_like(cvp)
-            wa2 = np.zeros_like(cvp)
-            wb = np.zeros_like(cvp)
-            wb2 = np.zeros_like(cvp)
-            for li in range(nlayer):
-                qsi = qs[li]*(1.+eq*df)
-                piqs = 1./(np.pi*qsi)
-                cqs = 1. - 0.5*ai/qsi
-                cds = 1. - piqs*ad
-                cvs[li] = vs[li]/(cds*cqs)      # complex Vs
-                qpi=qp[li]*(1.+eq*df)
-                piqp = 1./(np.pi*qpi)
-                cqp = 1.-0.5*ai/qpi
-                cdp = 1.-piqp*ad
-                cvp[li] = vp[li]/(cdp*cqp)      # complex Vp
-                wb[li] = omega/vs[li]      # omega for vs
-                wb2[li]= wb[li]**2
-                wa[li] = omega/vp[li]      # oemga for vp
-                wa2[li]= wa[li]**2
+            # calculating complex velocity
+            qsi = qs*(1+eq*df)
+            piqs = 1./(np.pi*qsi)
+            cqs = 1.-0.5*1j/qsi
+            cds = 1.-piqs*ad
+            cvs = vs/(cds*cqs)
+            qpi=qp*(1.+eq*df)
+            piqp = 1./(np.pi*qpi)
+            cqp = 1.-0.5*1j/qpi
+            cdp = 1.-piqp*ad
+            cvp = vp/(cdp*cqp)      # complex Vp
+            wb = omega/cvs      # omega for vs
+            wb2 = wb**2
+            wa = omega/cvp      # oemga for vp
+            wa2 = wa**2
             
-            n = 1.
+            #n = 1.
             if modeID==1:
                 wx0 = wa[nlayer-1]*np.sin(iang)
-                mx0 = n*fr*np.sin(iang)/vp[nlayer-1]
-                c1 = -ai/wa[nlayer-1]
+                #mx0 = n*fr*np.sin(iang)/vp[nlayer-1]
+                c1 = -1j/wa[nlayer-1]
             else:
                 wx0 = wb[nlayer-1]*np.sin(iang)
-                mx0 = n*fr*np.sin(iang)/vs[nlayer-1]
-                c1 = ai/wb[nlayer-1]
+                #mx0 = n*fr*np.sin(iang)/vs[nlayer-1]
+                c1 = 1j/wb[nlayer-1]
             wx02 = wx0**2
-            
-            f = kenpsv(jcas,wx0,omega,nlayer,th,dn,cvp,cvs)
-            
+            if i==0:
+                f = kenpsv(jcas,wx0,omega,nlayer,th,dn,cvp,cvs,verbose=True)
+            else:
+                f = kenpsv(jcas,wx0,omega,nlayer,th,dn,cvp,cvs)
             # if mode is 1 or 2 :
             #   1 = upgoing p wave
             #   2 = downgoing p wave
@@ -954,15 +955,9 @@ class TFCalculator:
             #   2 = downgoing sh wave
             wza = np.zeros_like(cvp)
             wzb = np.zeros_like(cvp)
+            wza = np.sqrt(wa2-wx02)
+            wzb = np.sqrt(wb2-wx02)
             for li in range(nlayer):
-                li1 = 4*li-3
-                li2 = li1+1
-                li3 = li2+1
-                li4 = li3+1
-                wza2 = wa2[li] - wx02
-                wzb2 = wb2[li] - wx02
-                wza[li] = np.sqrt(wza2)
-                wzb[li] = np.sqrt(wzb2)
                 wza[li] = -wza[li] if np.imag(wza[li])>0 else wza[li]
                 wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
                 
@@ -994,7 +989,13 @@ class TFCalculator:
                 w[i,ir] = uv0*c1
                 v0 = f[lish1,2]*phassu+f[lish2,2]*phassd
                 v[i,ir]=v0
-        return u
+        if mode==1 or mode==2:
+            htf = u
+            vtf = w
+        else:
+            htf = v
+            vtf = np.zeros_like(htf)
+        return htf/2.,vtf/2.
 
 # debugging
 """
@@ -1002,7 +1003,13 @@ import IOfile
 fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
 data2 = IOfile.parsing_input_file(fname2)
 theclass2 = TFCalculator(data2)
-v = theclass2.tf_kennett()
+htf,vtf = theclass2.tf_kennett()
+print np.shape(htf)
 import pylab as plt
-plt.plot(np.abs(v))
+plt.plot(np.abs(htf))
+plt.grid(True,which='both')
+plt.xscale('log')
+plt.yscale('log')
+plt.axis('Tight')
+print htf
 """
