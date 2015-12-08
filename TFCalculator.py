@@ -1005,6 +1005,150 @@ class TFCalculator:
             htf = v
             vtf = np.zeros_like(htf)
         return htf/2.,vtf/2.
+        
+    def RTcoefficientsSH(rho,alpha,beta,iangS,calctype='rssd'):        
+        """
+        Function to calculate Reflection and Transmission coefficient on SH case
+        4 possible calculation types:
+            - rssd
+                     \    /
+                      \  /
+                       \/
+                ================
+                
+            - rssu
+                ================
+                       /\
+                      /  \
+                     /    \
+                     
+            - tssd
+                     \
+                      \
+                ================
+                         \
+                          \
+                          
+            - tssu
+                          /
+                         /
+                ================
+                      /
+                     /
+        """
+        if calctype.lower() == 'tssd' or calctype.lower() == 'rssd':
+            iang = [iangS, np.arcsin(np.sin(iangS)*beta[1]/beta[0])]
+        elif calctype.lower() == 'tssd' or calctype.lower() == 'rssu':
+            iang = [np.arcsin(np.sin(iangS)*beta[0]/beta[1]), iangS]
+        Delta = rho[0]*beta[0]*np.cos(iang[0])+rho[1]*beta[1]*np.cos(iang[1])
+        if calctype.lower() == 'rssd':
+            return (rho[0]*beta[0]*np.cos(iang[0])-rho[1]*beta[1]*np.cos(iang[1]))/Delta
+        elif calctype.lower() == 'rssu':
+            return -(rho[0]*beta[0]*np.cos(iang[0])-rho[1]*beta[1]*np.cos(iang[1]))/Delta
+        elif calctype.lower() == 'tssd':
+            return (2.*rho[0]*beta[0]*np.cos(iang[0]))/Delta
+        elif calctype.lower() == 'tssu':
+            return (2.*rho[1]*beta[1]*np.cos(iang[1]))/Delta
+        else:
+            raise IOError('undefined calculation type')
+            
+    def RTcoefficientsPSV(rho,alpha,beta,iang,calctype='rppd',iangtype='p'):
+        """
+        Same analogy compared to RTcoefficientsSH
+        
+        iangtype = incident angle type --> 'p' or 's'
+        """
+        rho = np.asarray(rho)
+        alpha = np.asarray(alpha)
+        beta = np.asarray(beta)
+        
+        if iangtype.lower()=='p':
+            if calctype[3].lower()=='d':
+                iangP = [iang,np.arcsin(np.sin(iang)*alpha[1]/alpha[0])]
+            elif calctype[3].lower()=='u':
+                iangP = [np.arcsin(np.sin(iang)*alpha[0]/alpha[1]),iang]
+            iangS = [np.arcsin(np.sin(iang)*beta[0]/alpha[0]), \
+                     np.arcsin(np.sin(iang)*beta[1]/alpha[0])]
+        elif iangtype.lower()=='s':
+            if calctype[3].lower()=='d':
+                iangS = [iang,np.arcsin(np.sin(iang)*beta[1]/beta[0])]
+            elif calctype[3].lower()=='u':
+                iangS = [np.arcsin(np.sin(iang)*beta[0]/beta[1]),iang]
+            iangP = [np.arcsin(np.sin(iang)*alpha[0]/beta[0]), \
+                     np.arcsin(np.sin(iang)*alpha[1]/beta[0])]
+                     
+        beta2 = beta**2
+        p = np.sin(iangP[0])/alpha[0]      # ray parameter
+        p2 = p**2
+        
+        a = rho[1]*(1.-2.*beta2[1]*p2)-rho[0]*(1.-2.*beta2[0]*p2)
+        b = rho[1]*(1.-2.*beta2[1]*p2)+2.*rho[0]*beta2[0]*p2
+        c = rho[0]*(1.-2.*beta2[0]*p2)+2.*rho[1]*beta2[1]*p2
+        d = 2.*(rho[1]*beta2[1]-rho[0]*beta2[0])
+         
+        E = b*(np.cos(iangP[0])/alpha[0])+c*(np.cos(iangP[1])/alpha[1])
+        F = b*(np.cos(iangS[0])/beta[0])+c*(np.cos(iangS[1])/beta[1])
+        G = a - d*np.cos(iangP[0])*np.cos(iangS[1])/(alpha[0]*beta[1])
+        H = a - d*np.cos(iangP[1])*np.cos(iangS[0])/(alpha[1]*beta[0])
+        D = E*F+G*H*p2
+        
+        if calctype.lower() == 'rppd':
+            return (((b*(np.cos(iangP[0])/alpha[0])-c*(np.cos(iangP[1])/alpha[1]))*F)- \
+                    ((a + d*np.cos(iangP[0])*np.cos(iangS[1])/(alpha[0]*beta[1]))*H*p2))/D
+        elif calctype.lower() == 'rpsd':
+            return -2.*(np.cos(iangP[0])/alpha[0])*(a*b+c*d*np.cos(iangP[1])* \
+                    np.cos(iangS[1])/(alpha[1]*beta[1]))*p*alpha[0]/(beta[0]*D)
+        elif calctype.lower() == 'tppd':
+            return 2.*rho[0]*(np.cos(iangP[0])/alpha[0])*F*alpha[0]/(alpha[1]*D)
+        elif calctype.lower() == 'tpsd':
+            return 2.*rho[0]*(np.cos(iangP[0])/alpha[0])*H*p*alpha[0]/(beta[1]*D)
+        elif calctype.lower() == 'rspd':
+            return -2.*(np.cos(iangS[0])/beta[0])*(a*b+c*d*np.cos(iangP[1])* \
+                    np.cos(iangS[1])/(alpha[1]*beta[1]))*p*beta[0]/(alpha[0]*D)
+        elif calctype.lower() == 'rssd':
+            return -(((b*(np.cos(iangS[0])/beta[0])-c*(np.cos(iangS[1])/beta[1]))*E)- \
+                    ((a + d*np.cos(iangP[1])*np.cos(iangS[0])/(alpha[1]*beta[0]))*G*p2))/D
+        elif calctype.lower() == 'tspd':
+            return -2.*rho[0]*(np.cos(iangS[0])/beta[0])*G*p*beta[0]/(alpha[1]*D)
+        elif calctype.lower() == 'tssd':
+            return 2.*rho[0]*(np.cos(iangS[0])/beta[0])*E*beta[0]/(beta[1]*D)
+        elif calctype.lower() == 'tppu':
+            return 2.*rho[1]*(np.cos(iangP[1])/alpha[1])*F*alpha[1]/(alpha[0]*D)
+        elif calctype.lower() == 'tpsu':
+            #return 2.*rho[1]*(np.cos(iangP[1])/alpha[1])*H*p*alpha[1]/(beta[0]*D)  # check it.. I think the formula on aki richard was wrong!
+            return -2.*rho[1]*(np.cos(iangP[1])/alpha[1])*G*p*alpha[1]/(alpha[1]*D)
+        elif calctype.lower() == 'rppu':
+            return -(((b*(np.cos(iangP[0])/alpha[0])-c*(np.cos(iangP[1])/alpha[1]))*F)+ \
+                    ((a + d*np.cos(iangP[1])*np.cos(iangS[0])/(alpha[1]*beta[0]))*G*p2))/D
+        elif calctype.lower() == 'rpsu':
+            return 2.*(np.cos(iangP[1])/alpha[1])*(a*c+b*d*np.cos(iangP[0])* \
+                    np.cos(iangS[0])/(alpha[0]*beta[0]))*p*alpha[1]/(beta[1]*D)
+        elif calctype.lower() == 'tspu':
+            return 2.*rho[1]*(np.cos(iangS[1])/beta[1])*H*p*beta[1]/(alpha[0]*D)
+        elif calctype.lower() == 'tssu':
+            return  2.*rho[1]*(np.cos(iangS[1])/beta[1])*E*beta[1]/(beta[0]*D)
+        elif calctype.lower() == 'rspu':
+            return 2.*(np.cos(iangS[1])/beta[1])*(a*c+b*d*np.cos(iangP[0])* \
+                    np.cos(iangS[0])/(alpha[0]*beta[0]))*p*beta[1]/(alpha[1]*D)
+        elif calctype.lower() == 'rssu':
+            return (((b*(np.cos(iangS[0])/beta[0])-c*(np.cos(iangS[1])/beta[1]))*E)+ \
+                    ((a + d*np.cos(iangP[0])*np.cos(iangS[1])/(alpha[0]*beta[1]))*H*p2))/D
+                         
+    def tf_kennet_sh(self):
+        """
+        """
+        
+        # uniforming variable
+        mode = self.mode
+        modeID = self.modeID
+        ntf = self.ntf
+        tfpair = self.tfpair
+        nlayer = self.nlayer
+        hl = self.hl
+        vs = self.vs
+        dn = self.dn
+        qs = self.qs
+        freq = self.freq
 
 # debugging
 """
