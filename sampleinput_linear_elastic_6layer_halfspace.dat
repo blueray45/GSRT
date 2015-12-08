@@ -11,7 +11,7 @@ ricker.dat ascii
 # angle of indicidence (degree)
 0.
 # location of source
-2
+7
 #number of TF relation
 1
 #TF relation (top layer, bottom layer)

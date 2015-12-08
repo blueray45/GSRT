@@ -77,11 +77,13 @@ class TFCalculator:
         # calculating transfer function
         self.tf = []
         for j in range(self.ntf):
+            amp = np.zeros((len(self.freq)),dtype='complex64')
+            vtf = np.zeros((len(self.freq)),dtype='complex64')
             for i in range(len(self.freq)):
                 amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(2.*A[self.tfpair[j][1],i])
                 #amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(A[self.tfpair[j][1],i]+B[self.tfpair[j][1],i])
             self.tf.append(amp)
-            
+            self.tf.append(vtf)
         return self.tf
         
     def tf_knopoff_sh(self):
@@ -156,9 +158,10 @@ class TFCalculator:
         CORE[-1,-1] = 1
             
         # loop over frequencies and number of tfpair
-        tf = []
+        self.tf = []
         for tfp in range(ntf):
-            tft = np.zeros((fnum,1),dtype='complex64')
+            hft = np.zeros((fnum),dtype='complex64')
+            vft = np.zeros((fnum),dtype='complex64')
             for nf in range(fnum):
                 #----------------------------------------------
                 # Interfaces Constraints
@@ -178,11 +181,12 @@ class TFCalculator:
                 As = solve(CORE,Ds)
                 
                 # transfer function
-                tft[nf] = (As[tfpair[tfp][0]*2+1]-As[tfpair[tfp][0]*2])/ \
-                    (2.*As[tfpair[tfp][1]*2+1])
+                hft[nf] = (As[tfpair[tfp][0]*2+1][0]-As[tfpair[tfp][0]*2][0])/ \
+                    (2.*As[tfpair[tfp][1]*2+1][0])
                     
-            tf.append(tft)
-        return tf
+            self.tf.append(hft)
+            self.tf.append(vft)
+        return self.tf
         
     def tf_knopoff_sh_adv(self):
         """
@@ -249,9 +253,10 @@ class TFCalculator:
         fnum = len(freq)
         
         # loop over frequencies and tfpair
-        tf = []
+        self.tf = []
         for tfp in range(ntf):
-            tft = np.zeros((fnum,1),dtype='complex64')
+            hft = np.zeros((fnum),dtype='complex64')
+            vft = np.zeros((fnum),dtype='complex64')
             for nf in range(fnum):
                 # building core matrix
                 CORE = np.zeros((nlayer*2,nlayer*2),dtype='complex64')
@@ -284,15 +289,16 @@ class TFCalculator:
                 # solving linear system
                 try:
                     A=solve(CORE,D)
-                except ValueError:
+                except:
                     A[:] = np.nan
                     
                 # transfer function
-                tft[nf] = (A[tfpair[tfp][0]*2+1]+A[tfpair[tfp][0]*2])/ \
-                    (2.*A[tfpair[tfp][1]*2+1])
+                hft[nf] = (A[tfpair[tfp][0]*2+1][0]+A[tfpair[tfp][0]*2][0])/ \
+                    (2.*A[tfpair[tfp][1]*2+1][0])
                     
-            tf.append(tft)
-        return tf
+            self.tf.append(hft)
+            self.tf.append(vft)
+        return self.tf
         
     def tf_knopoff_psv_adv(self):
         """
@@ -323,7 +329,7 @@ class TFCalculator:
         # attenuation using complex velocities
         vp = vp*((2.*qp*1j)/(2.*qp*1j-1.))
         vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
-        print 'vs knopoff',vs
+        
         # angle of propagation within layers
         slayer = self.slayer
         iang = self.iang
@@ -396,7 +402,7 @@ class TFCalculator:
         fnum = len(freq)
         
         # loop over frequencies and tfpair
-        htf = []; vtf = []
+        self.tf = []
         for tfp in range(ntf):
             htft = np.zeros((fnum),dtype='complex64')
             vtft = np.zeros((fnum),dtype='complex64')
@@ -480,10 +486,13 @@ class TFCalculator:
                             rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
                             (2.*(-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
                             rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
-                    
-            htf.append(htft)
-            vtf.append(vtft)
-        return htf,vtf
+                #if nf==0:
+                #    print A[4*tfpair[tfp][1]+2],A[4*tfpair[tfp][1]+3]
+                #    print rs
+                #    print -np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2]),rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])
+            self.tf.append(htft)
+            self.tf.append(vtft)
+        return self.tf
     
     def tf_kennett(self):
         """

@@ -153,7 +153,7 @@ def SpectroPlot(x,y,z,nx=100,ny=100,ylabel='incidence angle',cmap='rainbow'):
         axis.set_minor_formatter(ScalarFormatter())
     plt.colorbar(am)
 
-
+"""
 # test display
 import IOfile
 from TFCalculator import TFCalculator as TFC
@@ -190,3 +190,4 @@ for i in range(len(ianglist)):
     y = np.concatenate((y,np.zeros_like(theclass3.freq)+ianglist[i]))
     
 SpectroPlot(x,y,z,nx=100,ny=100,ylabel='incidence angle',cmap='rainbow')
+"""

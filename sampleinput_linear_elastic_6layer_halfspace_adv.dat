@@ -5,19 +5,24 @@
 #       'sh-linear-viscoelastic-adv'
 #       'linear-equivalent'
 #       'non-linear'
-psv-p-linear-viscoelastic-adv
+sh-linear-viscoelastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
 ricker.dat ascii
 # angle of indicidence (degree)
 0.
 # location of source
-2
+7
 #number of TF relation
 1
 #TF relation (top layer, bottom layer)
-1 2
+1 7
 # number of layer
-2
-#thickness(m) Vp(m/s^2) Vs(m/s^2) rho(kg/m^3) Qp Qs
-10. 1500.  300.  1500.    30.   30.
- 0. 3000. 1000.  1500.  5000. 5000.
+7
+#thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
+10. 100. 1500. 30.
+15. 125. 1500. 30.
+10. 200. 1500. 30.
+40. 500. 1500. 30.
+50. 500. 1500. 30.
+20. 700. 1500. 30.
+0. 1000. 1500. 5000.

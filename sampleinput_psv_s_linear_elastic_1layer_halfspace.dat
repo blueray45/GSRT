@@ -5,7 +5,7 @@
 #       'sh-linear-viscoelastic-adv'
 #       'linear-equivalent'
 #       'non-linear'
-psv-p-linear-viscoelastic-adv
+psv-s-linear-viscoelastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
 ricker.dat ascii
 # angle of indicidence (degree)
