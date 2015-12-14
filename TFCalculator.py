@@ -9,6 +9,7 @@ www.github.com/GSRT
 """
 import commondata as cd
 import numpy as np
+from copy import deepcopy
 
 class TFCalculator:
     def __init__(self,data):
@@ -24,9 +25,7 @@ class TFCalculator:
         self.slayer = data['sourceloc']
         self.iang = data['iang']
 
-        if self.mode==cd.mode[4] or self.mode==cd.mode[5] or \
-            self.mode==cd.mode[6] or self.mode==cd.mode[7]:
-                
+        if self.modeID>4:                
             self.vp = np.array(data['vp'])
             self.qp = np.array(data['qp'])
             self.comp = np.array(data['comp'])
@@ -49,11 +48,11 @@ class TFCalculator:
         #if self.mode != cd.mode[0] and self.mode != cd.mode[1]:
         #    raise ValueError("Calculation mode is not supported! Use another moethod!")
         
-        Gc = np.zeros((len(self.hl),len(self.freq)),dtype='complex64')
+        Gc = np.zeros((len(self.hl),len(self.freq)),dtype='complex128')
         A = np.zeros_like(Gc)
         B = np.zeros_like(Gc)
         eta = np.zeros_like(self.qs)
-        amp = np.zeros((len(self.freq)),dtype='complex64')
+        amp = np.zeros((len(self.freq)),dtype='complex128')
         
         Yi = np.complex(0.,1.)
         A[0,:] = np.complex(1.,0.)
@@ -77,8 +76,8 @@ class TFCalculator:
         # calculating transfer function
         self.tf = []
         for j in range(self.ntf):
-            amp = np.zeros((len(self.freq)),dtype='complex64')
-            vtf = np.zeros((len(self.freq)),dtype='complex64')
+            amp = np.zeros((len(self.freq)),dtype='complex128')
+            vtf = np.zeros((len(self.freq)),dtype='complex128')
             for i in range(len(self.freq)):
                 amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(2.*A[self.tfpair[j][1],i])
                 #amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(A[self.tfpair[j][1],i]+B[self.tfpair[j][1],i])
@@ -138,7 +137,7 @@ class TFCalculator:
         Ds[-1] = 1.
         
         # building core matrix
-        CORE = zeros((nlayer*2,nlayer*2),dtype='complex64')
+        CORE = zeros((nlayer*2,nlayer*2),dtype='complex128')
         
         # free surface constraints
         
@@ -160,8 +159,8 @@ class TFCalculator:
         # loop over frequencies and number of tfpair
         self.tf = []
         for tfp in range(ntf):
-            hft = np.zeros((fnum),dtype='complex64')
-            vft = np.zeros((fnum),dtype='complex64')
+            hft = np.zeros((fnum),dtype='complex128')
+            vft = np.zeros((fnum),dtype='complex128')
             for nf in range(fnum):
                 #----------------------------------------------
                 # Interfaces Constraints
@@ -218,7 +217,7 @@ class TFCalculator:
         iang = self.iang
         
         iD = np.zeros((nlayer,1))
-        iCORE = np.zeros((nlayer,nlayer),dtype='complex64')
+        iCORE = np.zeros((nlayer,nlayer),dtype='complex128')
         
         iD[0] = np.sin(iang)
         iCORE[0,slayer] = 1.
@@ -232,13 +231,13 @@ class TFCalculator:
         iS = np.arcsin(iA)
         
         # Lame Parameter(s)
-        mu = np.zeros((nlayer,1),dtype='complex64')
+        mu = np.zeros((nlayer,1),dtype='complex128')
         
         for nl in range(nlayer):
             mu[nl]=dn[nl]*(vs[nl]**2)
         
         # horizontal and vertical slowness
-        ns = np.zeros((nlayer,1),dtype='complex64')
+        ns = np.zeros((nlayer,1),dtype='complex128')
         
         for nl in range(nlayer):
             ns[nl]=np.cos(iS[nl])/vs[nl]
@@ -255,11 +254,11 @@ class TFCalculator:
         # loop over frequencies and tfpair
         self.tf = []
         for tfp in range(ntf):
-            hft = np.zeros((fnum),dtype='complex64')
-            vft = np.zeros((fnum),dtype='complex64')
+            hft = np.zeros((fnum),dtype='complex128')
+            vft = np.zeros((fnum),dtype='complex128')
             for nf in range(fnum):
                 # building core matrix
-                CORE = np.zeros((nlayer*2,nlayer*2),dtype='complex64')
+                CORE = np.zeros((nlayer*2,nlayer*2),dtype='complex128')
                 
                 # free surface constraints
                 CORE[0,0] = 1.
@@ -318,6 +317,7 @@ class TFCalculator:
         vp = self.vp
         qp = self.qp
         comp = self.comp
+        iang = self.iang        
         
         # checking calculation validity
         #if mode != cd.mode[2] and mode!=cd.mode[3]:
@@ -334,8 +334,8 @@ class TFCalculator:
         slayer = self.slayer
         iang = self.iang
         
-        iD = np.zeros((nlayer*2),dtype='complex64')
-        iCORE = np.zeros((nlayer*2,nlayer*2),dtype='complex64')
+        iD = np.zeros((nlayer*2),dtype='complex128')
+        iCORE = np.zeros((nlayer*2,nlayer*2),dtype='complex128')
         
         if comp=='p':
             iD[0] = np.sin(iang)
@@ -343,7 +343,7 @@ class TFCalculator:
         elif comp=='s':
             iD[0] = np.sin(iang)*vp[slayer]/vs[slayer]
             iD[1] = np.sin(iang)
-            
+        
         iCORE[0,2*slayer] = 1. # check the index
         iCORE[1,2*slayer+1] = 1.
         
@@ -358,39 +358,41 @@ class TFCalculator:
             iCORE[row+3,col+1] = 1/vs[nl]
             iCORE[row+3,col+3] = -1/vs[nl+1]
             
-        iA = solve(iCORE,iD)
+        iA = np.linalg.solve(iCORE,iD)
+        
+        iP = np.zeros((nlayer),dtype='complex128')
+        iS = np.zeros((nlayer),dtype='complex128')
 
-        iP = np.zeros((nlayer),dtype='complex64')
-        iS = np.zeros((nlayer),dtype='complex64')
-        
-        for i in range(nlayer):
+        for nl in range(nlayer):
             row = nl*2
-            iP[nl] = np.arcsin(iA[row])            
-            iS[nl] = np.arcsin(iA[row+1])
-        
+            iP[nl] = np.arcsin(iA[row]) if np.real(iA[row]) <= 1.0 else np.arcsin(np.complex(np.real(iA[row]),-1.*np.abs(np.imag(iA[row]))))
+            iS[nl] = np.arcsin(iA[row+1]) if np.real(iA[row+1]) <= 1.0 else np.arcsin(np.complex(np.real(iA[row+1]),-1.*np.abs(np.imag(iA[row+1]))))
+        #print iA
+        #print iP
+        #print iS
         # Lame Parameter(s)
-        mu = np.zeros((nlayer),dtype='complex64')
-        la = np.zeros((nlayer),dtype='complex64')
+        mu = np.zeros((nlayer),dtype='complex128')
+        la = np.zeros((nlayer),dtype='complex128')
         
         for nl in range(nlayer):
             mu[nl]=dn[nl]*(vs[nl]**2)
             la[nl]=dn[nl]*((vp[nl]**2)-(2.*(vs[nl]**2)))            
-        
+
         # horizontal and vertical slowness
-        rp = np.zeros((nlayer),dtype='complex64')
-        rs = np.zeros((nlayer),dtype='complex64')
-        np1 = np.zeros((nlayer),dtype='complex64')
-        ns = np.zeros((nlayer),dtype='complex64')
+        rp = np.zeros((nlayer),dtype='complex128')
+        rs = np.zeros((nlayer),dtype='complex128')
+        np1 = np.zeros((nlayer),dtype='complex128')
+        ns = np.zeros((nlayer),dtype='complex128')
         
         for nl in range(nlayer):
             rp[nl] = np.sin(iP[nl])/vp[nl]
             rs[nl] = np.sin(iS[nl])/vs[nl]
             np1[nl] = np.cos(iP[nl])/vp[nl]
             ns[nl] = np.cos(iS[nl])/vs[nl]
-        
+
         # building data vector
-        A = np.zeros((nlayer*4),dtype='complex64')
-        D = np.zeros((nlayer*4),dtype='complex64')
+        A = np.zeros((nlayer*4),dtype='complex128')
+        D = np.zeros((nlayer*4),dtype='complex128')
         
         if comp=='p':
             D[-2] = vp[-1]
@@ -404,11 +406,11 @@ class TFCalculator:
         # loop over frequencies and tfpair
         self.tf = []
         for tfp in range(ntf):
-            htft = np.zeros((fnum),dtype='complex64')
-            vtft = np.zeros((fnum),dtype='complex64')
+            htft = np.zeros((fnum),dtype='complex128')
+            vtft = np.zeros((fnum),dtype='complex128')
             for nf in range(fnum):
                 # building core matrix
-                CORE = np.zeros((nlayer*4,nlayer*4),dtype='complex64')
+                CORE = np.zeros((nlayer*4,nlayer*4),dtype='complex128')
                 
                 # free surface constraints
                 CORE[0,0] = la[0]*rp[0]**2+(la[0]+2.*mu[0])*np1[0]**2
@@ -420,7 +422,7 @@ class TFCalculator:
                 CORE[1,1] = -mu[0]*(rs[0]**2-ns[0]**2)
                 CORE[1,2] = 2.*mu[0]*rp[0]*np1[0]
                 CORE[1,3] = -mu[0]*(rs[0]**2-ns[0]**2)
-
+                #print la[0],rp[0],mu[0],np1[0]
                 # Interfaces constraints
                 for nl in range(nlayer-1):
                     row = (nl*4)+2
@@ -470,22 +472,37 @@ class TFCalculator:
                 # input constraints
                 CORE[-2,-2]=1.  # <-- P
                 CORE[-1,-1]=1.  # <-- S
-
+                
                 # solving linear system
                 try:
-                    A=solve(CORE,D)
+                    #A=solve(CORE,D)
+                    #CORE = np.matrix(CORE)
+                    #D = np.matrix(D)
+                    A = np.linalg.solve(CORE,D)
+                    #A=np.dot(np.linalg.pinv(CORE,rcond=1e-40),D)
+                    #import sympy as sp
+                    #X = sp.Matrix(CORE)
+                    #X=np.dot(np.linalg.inv(CORE),D)
                 except ValueError:
+                    print 'ValueError TFCalculater.py'
                     A[:] = np.nan
                     
+                
                 # transfer function
                 htft[nf] = (rp[tfpair[tfp][0]]*(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
                             ns[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1]))/ \
                             (2.*(rp[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
                             ns[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
+                #print rp[tfpair[tfp][0]],(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0]), \
+                #            ns[tfpair[tfp][0]],(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1])
                 vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
                             rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
                             (2.*(-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
                             rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
+                #vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                #            rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
+                #            (2.*(-np1[-1]*(A[-2])+ \
+                #            rs[-1]*(A[-1])))
                 #if nf==0:
                 #    print A[4*tfpair[tfp][1]+2],A[4*tfpair[tfp][1]+3]
                 #    print rs
@@ -537,16 +554,16 @@ class TFCalculator:
             # coefficient for the convention of PSI (coef) and for TF
             aki = -1.
             
-            ru = np.zeros((nlayer,2,2),dtype='complex64')
-            tu = np.zeros((nlayer,2,2),dtype='complex64')
-            rd = np.zeros((nlayer,2,2),dtype='complex64')
-            td = np.zeros((nlayer,2,2),dtype='complex64')
-            rush = np.zeros((nlayer),dtype='complex64')
-            tush = np.zeros((nlayer),dtype='complex64')
-            rdsh = np.zeros((nlayer),dtype='complex64')
-            tdsh = np.zeros((nlayer),dtype='complex64')
-            me1 = np.zeros((nlayer),dtype='complex64')
-            me2 = np.zeros((nlayer),dtype='complex64')
+            ru = np.zeros((nlayer,2,2),dtype='complex128')
+            tu = np.zeros((nlayer,2,2),dtype='complex128')
+            rd = np.zeros((nlayer,2,2),dtype='complex128')
+            td = np.zeros((nlayer,2,2),dtype='complex128')
+            rush = np.zeros((nlayer),dtype='complex128')
+            tush = np.zeros((nlayer),dtype='complex128')
+            rdsh = np.zeros((nlayer),dtype='complex128')
+            tdsh = np.zeros((nlayer),dtype='complex128')
+            me1 = np.zeros((nlayer),dtype='complex128')
+            me2 = np.zeros((nlayer),dtype='complex128')
             if jcas == 0:
                 # coefficient for free surface
                 cf1 = ckb2[0]-2.*cwx2
@@ -635,16 +652,16 @@ class TFCalculator:
             
             # calculation for the layers above the source
             nc = deepcopy(nlayer)
-            nt   = np.zeros((nlayer,2,2),dtype='complex64')
-            mt   = np.zeros((nlayer,2,2),dtype='complex64')
-            ntsh = np.zeros((nlayer),dtype='complex64')
-            mtsh = np.zeros((nlayer),dtype='complex64')
-            fdo  = np.zeros((nlayer,2,2),dtype='complex64')
-            fup  = np.zeros((nlayer,2,2),dtype='complex64')
-            fupsh= np.zeros((nlayer),dtype='complex64')
-            fdosh= np.zeros((nlayer),dtype='complex64')
-            nb = np.zeros((2,2),dtype='complex64')
-            mb = np.zeros((2,2),dtype='complex64')
+            nt   = np.zeros((nlayer,2,2),dtype='complex128')
+            mt   = np.zeros((nlayer,2,2),dtype='complex128')
+            ntsh = np.zeros((nlayer),dtype='complex128')
+            mtsh = np.zeros((nlayer),dtype='complex128')
+            fdo  = np.zeros((nlayer,2,2),dtype='complex128')
+            fup  = np.zeros((nlayer,2,2),dtype='complex128')
+            fupsh= np.zeros((nlayer),dtype='complex128')
+            fdosh= np.zeros((nlayer),dtype='complex128')
+            nb = np.zeros((2,2),dtype='complex128')
+            mb = np.zeros((2,2),dtype='complex128')
             
             nt[0,0,0] = ru[0,0,0]
             nt[0,0,1] = ru[0,0,1]
@@ -748,15 +765,15 @@ class TFCalculator:
             
             # reflect4(jcas)
             
-            ftup = np.zeros((nlayer,2,2),dtype='complex64')
-            pu = np.zeros((nlayer,2,2),dtype='complex64')
-            pd = np.zeros((nlayer,2,2),dtype='complex64')
-            push = np.zeros((nlayer),dtype='complex64')
-            pdsh = np.zeros((nlayer),dtype='complex64')
-            ftdo = np.zeros((nlayer,2,2),dtype='complex64')
-            ftupsh = np.zeros((nlayer),dtype='complex64')
-            ftdosh = np.zeros((nlayer),dtype='complex64')
-            cfwave = np.zeros((nlayer*4,3),dtype='complex64')
+            ftup = np.zeros((nlayer,2,2),dtype='complex128')
+            pu = np.zeros((nlayer,2,2),dtype='complex128')
+            pd = np.zeros((nlayer,2,2),dtype='complex128')
+            push = np.zeros((nlayer),dtype='complex128')
+            pdsh = np.zeros((nlayer),dtype='complex128')
+            ftdo = np.zeros((nlayer,2,2),dtype='complex128')
+            ftupsh = np.zeros((nlayer),dtype='complex128')
+            ftdosh = np.zeros((nlayer),dtype='complex128')
+            cfwave = np.zeros((nlayer*4,3),dtype='complex128')
             if jcas==0:
                 # case jcas=0 free surface reflection
                 ftup[nc-1,0,0] = 1.
@@ -810,7 +827,7 @@ class TFCalculator:
                 #ftdo[0,0,1]=0.
                 #ftdo[0,1,0]=0.
                 ftdo[0,1,1]=1.
-                ftdosh[1]=1.
+                ftdosh[0]=1.
                 
                 for ic in range(1,nc):
                     ftdo[ic,0,0] = fdo[ic,0,0]*ftdo[ic-1,0,0]+fdo[ic,0,1]*ftdo[ic-1,1,0]
@@ -906,9 +923,9 @@ class TFCalculator:
         izr = np.array([tfpair[i][1] for i in range(len(tfpair))])
         
         # iterating over frequencies
-        u = np.zeros((nf,nr),dtype='complex64')
-        v = np.zeros((nf,nr),dtype='complex64')
-        w = np.zeros((nf,nr),dtype='complex64')
+        u = np.zeros((nf,nr),dtype='complex128')
+        v = np.zeros((nf,nr),dtype='complex128')
+        w = np.zeros((nf,nr),dtype='complex128')
         for i,fr in enumerate(freq):
             fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
             rw = fr*np.pi*2.
@@ -1006,7 +1023,7 @@ class TFCalculator:
             vtf = np.zeros_like(htf)
         return htf/2.,vtf/2.
         
-    def RTcoefficientsSH(rho,alpha,beta,iangS,calctype='rssd'):        
+    def RTcoefficientsSH(self,rho,beta,iangS,calctype='rssd'):        
         """
         Function to calculate Reflection and Transmission coefficient on SH case
         4 possible calculation types:
@@ -1038,7 +1055,7 @@ class TFCalculator:
         """
         if calctype.lower() == 'tssd' or calctype.lower() == 'rssd':
             iang = [iangS, np.arcsin(np.sin(iangS)*beta[1]/beta[0])]
-        elif calctype.lower() == 'tssd' or calctype.lower() == 'rssu':
+        elif calctype.lower() == 'tssu' or calctype.lower() == 'rssu':
             iang = [np.arcsin(np.sin(iangS)*beta[0]/beta[1]), iangS]
         Delta = rho[0]*beta[0]*np.cos(iang[0])+rho[1]*beta[1]*np.cos(iang[1])
         if calctype.lower() == 'rssd':
@@ -1052,7 +1069,7 @@ class TFCalculator:
         else:
             raise IOError('undefined calculation type')
             
-    def RTcoefficientsPSV(rho,alpha,beta,iang,calctype='rppd',iangtype='p'):
+    def RTcoefficientsPSV(self,rho,alpha,beta,iang,calctype='rppd',iangtype='p'):
         """
         Same analogy compared to RTcoefficientsSH
         
@@ -1076,6 +1093,8 @@ class TFCalculator:
                 iangS = [np.arcsin(np.sin(iang)*beta[0]/beta[1]),iang]
             iangP = [np.arcsin(np.sin(iang)*alpha[0]/beta[0]), \
                      np.arcsin(np.sin(iang)*alpha[1]/beta[0])]
+        else:
+            raise IOError('incidence wave type is not supported!')
                      
         beta2 = beta**2
         p = np.sin(iangP[0])/alpha[0]      # ray parameter
@@ -1133,10 +1152,12 @@ class TFCalculator:
         elif calctype.lower() == 'rssu':
             return (((b*(np.cos(iangS[0])/beta[0])-c*(np.cos(iangS[1])/beta[1]))*E)+ \
                     ((a + d*np.cos(iangP[0])*np.cos(iangS[1])/(alpha[0]*beta[1]))*H*p2))/D
+        else:
+            raise IOError('Unsupported type of calculation!')
                          
     def tf_kennet_sh(self):
         """
-        """
+        """        
         
         # uniforming variable
         mode = self.mode
@@ -1149,8 +1170,68 @@ class TFCalculator:
         dn = self.dn
         qs = self.qs
         freq = self.freq
+        iang = self.iang
+        
+        # calculate complex velocity
+        vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
+        
+        # calculate reflection and transmission coefficient
+        ru = np.zeros((nlayer-1),dtype='complex128')
+        rd = np.zeros((nlayer-1),dtype='complex128')
+        tu = np.zeros((nlayer-1),dtype='complex128')
+        td = np.zeros((nlayer-1),dtype='complex128')
+        for i in range(nlayer-1):
+            ru[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'rssu')
+            rd[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'rssd')
+            tu[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'tssu')
+            td[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'tssd')        
+        
+        print ru,rd
+        print tu,td
+        
+        # overall reflection and transmission for bottom layer
+        Td0 = 1.0+0j
+        Tu0 = 1.0+0j
+        Rd0 = 0.0+0j
+        Ru0 = 0.0+0j
+        I = 1+0j
+        
+        print type(Td0)        
+        
+        for i in range(nlayer-2,-1,-1):
+            # downward propagation
+            Td = Td0*(1./(I-ru[i]*Rd0))*td[i]
+            Rd = rd[i]+tu[i]*Rd0*(1./(I-ru[i]*Rd0))*td[i]
+            # upward propagation
+            Tu = tu[i]*(1./(I-Rd0*ru[i]))*Tu0
+            Ru = Ru0+Td0*(1./(I-ru[i]*Rd0))*tu[i]*Tu0
+            
+            Td0 = deepcopy(Td)
+            Tu0 = deepcopy(Tu)
+            Rd0 = deepcopy(Rd)
+            Ru0 = deepcopy(Ru)
+            
+        TR = np.asarray([[Tu-Rd*(1/Td)*Ru, Rd/Td],
+                         [-(1./Td)*Ru, 1./Td]])
+        
+        print'TR'
+        print TR
+        print np.linalg.inv(TR)
+        print np.allclose(np.dot(TR,np.linalg.inv(TR)),np.eye(2))
+        
+        
+        
+            
+        
 
 # debugging
+"""
+import IOfile
+fname2 = 'sampleinput_linear_elastic_6layer_halfspace.dat'
+data2 = IOfile.parsing_input_file(fname2)
+theclass2 = TFCalculator(data2)
+theclass2.tf_kennet_sh()
+"""
 """
 import IOfile
 fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'

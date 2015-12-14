@@ -24,7 +24,7 @@ f = plt.figure(figsize=(10.,10.))
 ax = f.add_subplot(111)
 print data
 print('data reading was OK! proceed!')
-
+"""
 print 'creating class'
 theclass = TFC(data)
 print 'class creation was succeed! proceed!'
@@ -40,7 +40,8 @@ tf2 = theclass.tf_knopoff_sh()
 print 'calculation has been finished!'
 
 ax.plot(theclass.freq,np.abs(tf2[0]),'r',label='knopoff sh')
-
+"""
+"""
 print 'TF calculation using complete knopoff sh approach'
 fname3 = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
 data3 = IOfile.parsing_input_file(fname3)
@@ -48,24 +49,27 @@ theclass3 = TFC(data3)
 tf3 = theclass3.tf_knopoff_sh_adv()
 print 'Done! Amazing!'
 
-ax.plot(theclass.freq,np.abs(tf3[0]),'g--',lw=4.,label='knopoff sh complete')
-
-fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
+ax.plot(theclass3.freq,np.abs(tf3[0]),'g--',lw=4.,label='knopoff sh complete')
+"""
+fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 data2 = IOfile.parsing_input_file(fname2)
+data2['iang'] = np.deg2rad(85.)
 print 'creating class'
 theclass2 = TFC(data2)
 print 'class creation was succeed! proceed!'
 print 'TF calculation using complete knopoff psv approach'
-htf4,vtf4 = theclass.tf_knopoff_psv_adv()
+tf4 = theclass2.tf_knopoff_psv_adv()
 print 'Done! Amazing!'
-plt.plot(theclass2.freq,np.abs(htf4[0]),'r-.',lw=2.,label='knopoff psv-s complete')
-
+ax.plot(theclass2.freq,np.abs(tf4[0]),'r-.',lw=2.,label='htf knopoff psv-s complete')
+ax.plot(theclass2.freq,np.abs(tf4[1]),'g-.',lw=2.,label='vtf knopoff psv-s complete')
+#ax.plot(theclass2.freq,np.sqrt(np.abs(tf4[0])**2+np.abs(tf4[0])**2),'b-.',lw=2.,label='amp knopoff psv-s complete')
+"""
 fname5 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
 data5 = IOfile.parsing_input_file(fname5)
 theclass5 = TFC(data5)
 htf5,vtf5 = theclass5.tf_kennett()
 plt.plot(theclass5.freq,np.abs(htf5),'r-.',lw=2.,label='kennet sh')
-
+"""
 
 plt.xlabel('frequency (Hz)')
 plt.ylabel('Amplification')

@@ -40,6 +40,7 @@ def parsing_input_file(fname):
 
     # reading the whole configuration
     data = {}
+    data['sensitifity'] = False
     with open(fname) as f:
         
         for line in f:
@@ -50,7 +51,7 @@ def parsing_input_file(fname):
                 break
         
         modeID = cd.mode.index(mode)
-        
+        data['modeID'] = modeID
         hl = []; vs = []; dn = []; qs = []
         vp = []; qp = [];
         tfPair = []
@@ -60,10 +61,10 @@ def parsing_input_file(fname):
         #    mode.lower()==cd.mode[4] or mode.lower()==cd.mode[5] or \
         #    mode.lower()==cd.mode[6] or mode.lower()==cd.mode[7]:
         
-        if modeID<8:
-            if modeID<4:
+        if modeID<11:
+            if modeID<5:
                 blockSeq = [1,2,3,4,5,6,7,8]
-            elif modeID<8:
+            elif modeID<11:
                 blockSeq = [1,2,3,4,5,6,7,9]
             IDSeq = 1
             for line in f:
