@@ -547,7 +547,7 @@ class TFCalculator:
             cgam = np.sqrt(ckb2-cwx2)
             for ic in range(nlayer):
                 cnu[ic] =-cnu[ic] if np.imag(cnu[ic])>0. else cnu[ic]
-                cgam[ic]=-cgam[ic] if np.imag(cnu[ic])>0. else cgam[ic]
+                cgam[ic]=-cgam[ic] if np.imag(cgam[ic])>0. else cgam[ic]
 
             # calculation of reflection/transmission coefficients matrix and phase shift
             
@@ -926,6 +926,8 @@ class TFCalculator:
         u = np.zeros((nf,nr),dtype='complex128')
         v = np.zeros((nf,nr),dtype='complex128')
         w = np.zeros((nf,nr),dtype='complex128')
+       
+        
         for i,fr in enumerate(freq):
             fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
             rw = fr*np.pi*2.
@@ -940,6 +942,7 @@ class TFCalculator:
             df = fr - freq0
             df = 0. if df<0. else df
             
+            """
             # calculating complex velocity
             qsi = qs*(1+eq*df)
             piqs = 1./(np.pi*qsi)
@@ -951,6 +954,9 @@ class TFCalculator:
             cqp = 1.-0.5*1j/qpi
             cdp = 1.-piqp*ad
             cvp = vp/(cdp*cqp)      # complex Vp
+            """
+            cvp = vp*((2.*qp*1j)/(2.*qp*1j-1.))
+            cvs = vs*((2.*qs*1j)/(2.*qs*1j-1.)) 
             wb = omega/cvs      # omega for vs
             wb2 = wb**2
             wa = omega/cvp      # oemga for vp
@@ -1158,7 +1164,7 @@ class TFCalculator:
     def tf_kennet_sh(self):
         """
         """        
-        
+        """
         # uniforming variable
         mode = self.mode
         modeID = self.modeID
@@ -1174,6 +1180,7 @@ class TFCalculator:
         
         # calculate complex velocity
         vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
+        
         
         # calculate reflection and transmission coefficient
         ru = np.zeros((nlayer-1),dtype='complex128')
@@ -1218,10 +1225,205 @@ class TFCalculator:
         print TR
         print np.linalg.inv(TR)
         print np.allclose(np.dot(TR,np.linalg.inv(TR)),np.eye(2))
+        """
+        """
+        porting from geopsy based on kennet formalism
+        Pierre-Yves Bard (LGIT, Grenoble, France)
+        Cecile Cornou (LGIT, Grenoble, France), minor modifications
+        Marc Wathelet (LGIT, Grenoble, France), port to subroutine
+        Theodosius Marwan Irnaka (GEM, Pavia, Italy), port to python
+        """
         
-        
-        
+        def kensh(jcas,cwx,omega,nlayer,th,dn,cvs,verbose=False):
+            """
+            kennet formalism
+            """
             
+            # if th[0]=0, given the depth of the interfaces, else given the thickness
+            hc = np.zeros(nlayer)            
+            if th[0]==0.:
+                for ic in range(nlayer):
+                    hc[ic]=th[ic+1]-th[ic]
+            else:
+                hc = th
+            
+            cwx2 = cwx**2
+            
+            ckb2= (omega/cvs)**2
+            cgam = np.sqrt(ckb2-cwx2)
+            for ic in range(nlayer):
+                cgam[ic]=-cgam[ic] if np.imag(cgam[ic])>0. else cgam[ic]
+
+            # calculation of reflection/transmission coefficients matrix and phase shift
+            
+            # coefficient for the convention of PSI (coef) and for TF
+            rush = np.zeros((nlayer),dtype='complex128')
+            tush = np.zeros((nlayer),dtype='complex128')
+            rdsh = np.zeros((nlayer),dtype='complex128')
+            tdsh = np.zeros((nlayer),dtype='complex128')
+            me = np.zeros((nlayer),dtype='complex128')
+            if jcas == 0:
+                # coefficient for free surface (perfect reflection)
+                rush[0] = 1.
+                #tush[0] = 0.
+            else:
+                # coefficient for infinite space (perfect transmission)
+                #rush[0] = 0.
+                tush[0] = 1.
+
+            # coefficients at the interfaces between layers
+            for ic in range(1,nlayer):
+                me[ic-1] = np.exp(-1j*cgam[ic-1]*hc[ic-1])
+                
+                cs1 = dn[ic-1]/ckb2[ic-1]*cgam[ic-1]
+                cs2 = dn[ic]/ckb2[ic]*cgam[ic]
+                cdelt= cs1+cs2
+                
+                rush[ic] = (cs2-cs1)/cdelt
+                rdsh[ic] =-rush[ic]
+                tush[ic] = 2.*cs2/cdelt
+                tdsh[ic] = 2.*cs1/cdelt
+            
+            # calculation of reflectivity matrix : mt(), mb(), nt() nb()
+            
+            # calculation for the layers above the source
+            nc = deepcopy(nlayer)
+            ntsh = np.zeros((nlayer),dtype='complex128')
+            mtsh = np.zeros((nlayer),dtype='complex128')
+            fupsh= np.zeros((nlayer),dtype='complex128')
+            fdosh= np.zeros((nlayer),dtype='complex128')  
+            
+            ntsh[0] = rush[0]            
+            for ic in range(nc-1):
+                nbsh = me[ic]*me[ic]*ntsh[ic]
+                cash = 1./(1.-rdsh[ic+1]*nbsh)
+                cbsh = tdsh[ic+1]*nbsh
+                ccsh = cash*tush[ic+1]
+                ntsh[ic+1] = rush[ic+1]+cbsh*ccsh
+                fupsh[ic] = ccsh*me[ic]
+            
+            # calculation for the laters below the source
+            #mtsh[nc-1] = 0.
+            for ic in range(nc-2,-1,-1):
+                cash = 1./(1.-rush[ic+1]*mtsh[ic+1])
+                cbsh = tush[ic+1]*mtsh[ic+1]
+                ccsh = cash*tdsh[ic+1]
+                mbsh = rdsh[ic+1]*cbsh*ccsh
+                mtsh[ic] = me[ic]*me[ic]*mbsh
+                fdosh[ic+1] = ccsh*me[ic]
+            
+            # reflect4(jcas)
+            
+            push = np.zeros((nlayer),dtype='complex128')
+            pdsh = np.zeros((nlayer),dtype='complex128')
+            ftupsh = np.zeros((nlayer),dtype='complex128')
+            ftdosh = np.zeros((nlayer),dtype='complex128')
+            cfwave = np.zeros((nlayer*2),dtype='complex128')
+            if jcas==0:
+                # case jcas=0 free surface reflection
+                ftupsh[nc-1] = 1.
+                
+                for ic in range(nc-2,-1,-1):
+                    ftupsh[ic] = fupsh[ic]*ftupsh[ic+1]
+                    
+                # ???? Vectors potential amount (pu) and down (pd) in each layer receiver for 6 elementary sources
+                # Receivers above the source
+                    
+                for ic in range(nc):                    
+                    icsh1 = 2*ic
+                    icsh2 = icsh1+1
+                    push[ic] = ftupsh[ic]
+                    pdsh[ic] = ntsh[ic]*push[ic]
+                    cfwave[icsh1] = push[ic]
+                    cfwave[icsh2] = pdsh[ic]
+            else:
+                # case jcas=1 : no upwave incident
+                ftdosh[0]=1.
+                
+                for ic in range(1,nc):
+                    ftdosh[ic] = fdosh[ic]*ftdosh[ic-1]
+                    
+                for ic in range(nc):
+                    icsh1 = 2*ic
+                    icsh2 = icsh1+1
+                    pdsh[ic] = ftdosh[ic]
+                    push[ic] = mtsh[ic]*pdsh[ic]
+                    cfwave[icsh1] = push[ic]
+                    cfwave[icsh2] = pdsh[ic]
+            return cfwave
+        
+        # uniforming variable
+        mode = self.mode
+        modeID = self.modeID
+        ntf = self.ntf
+        tfpair = self.tfpair
+        nlayer = self.nlayer
+        hl = self.hl
+        vs = self.vs
+        dn = self.dn
+        qs = self.qs
+        freq = self.freq
+        
+        q = 1.e+20          # ????
+        iang = self.iang    # incidence angle (radians)
+        jcas = 0            # jcas <-- 0 means with free surface, 1 means infinite medium
+        nr = len(tfpair)    # number of receiver given by the pair of input and output motion
+        zr = np.array([tfpair[i][0]*hl for i in range(len(tfpair))])
+                            # depth of receiver given as list (BEWARE OF INCOMPATIBILITY!!)
+        
+        # defining depth of the top layer (can be modified later)
+        th = np.zeros(nlayer+1)
+        for i in range(1,nlayer+1):
+            th[i] += hl[i-1]
+        
+        nf = len(freq)
+        aw = -np.pi/q           # I don't understand! it's basically 0!
+
+        # index of receiver
+        izr = np.array([tfpair[i][0] for i in range(len(tfpair))])
+        
+        # iterating over frequencies
+        v = np.zeros((nf,nr),dtype='complex128')
+        self.tf = []
+        for i,fr in enumerate(freq):
+            fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
+            rw = fr*np.pi*2.
+            omega = np.complex(rw,aw)
+            
+            # calculating complex velocity
+            cvs = vs*((2.*qs*1j)/(2.*qs*1j-1.)) 
+            wb = omega/cvs      # omega for vs
+            wb2 = wb**2
+            
+            wx0 = wb[nlayer-1]*np.sin(iang)
+            wx02 = wx0**2
+            if i==0:
+                f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs,verbose=True)
+            else:
+                f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs)
+            
+            # if mode = 3 :
+            #   1 = upgoing sh wave
+            #   2 = downgoing sh wave
+            wzb = np.zeros_like(cvs)
+            wzb = np.sqrt(wb2-wx02)
+            for li in range(nlayer):
+                wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
+                
+            for ir in range(nr):
+                li = izr[ir]
+                lish1=2*li
+                lish2=lish1+1
+                z=zr[0][ir]-th[li]
+                phassu=np.exp(1j*wzb[li]*z)
+                phassd=1./phassu
+                
+                v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
+            htft = v/2.
+            vtft = np.zeros_like(htft)
+        self.tf.append(htft[:,0])
+        self.tf.append(vtft[:,0])
+        return self.tf
         
 
 # debugging

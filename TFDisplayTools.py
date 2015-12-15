@@ -12,43 +12,31 @@ import pylab as plt
 from matplotlib.ticker import ScalarFormatter
 import matplotlib.cm as cm
 
-def TFPlot(*arg,**kwargs):
-    # check given axis name
-    try:
-        axname = kwargs['axname']
-    except KeyError:
-        axname = None
-    try:
-        label = kwargs['label']
-    except KeyError:
-        label = ['']*(len(arg))
-    # create new figure is axis name is not given
-    if axname==None:
-        f = plt.figure(figsize=(14.,7.),dpi=300)
-        
-        # create default color cycle
-        clist = cm.rainbow(np.arange(1000))
-        #for i in range(len(arg)):
-        cclist = []
-        if len(arg)>=2:
-            for i in range(len(arg)-1):
-                n = 1000/(len(arg)-1)
-                cclist.append(clist[n*i])
-        cclist.append(clist[-1])
-        
-        a2= f.add_subplot(1,5,5)
+def colorcycle(ncolorinput):
+    ncolor = 256
+    clist = cm.rainbow(np.arange(ncolor))
+    
+    cclist = []
+    if ncolorinput>=2:
+        for i in range(ncolorinput-1):
+            n = ncolor/(ncolorinput-1)
+            cclist.append(clist[n*i])
+    cclist.append(clist[-1])
+    return cclist
+    
+def velocityprofileplot(inp,a2,cclist):
         xmax = []
         xmin = []
-        for i in range(len(arg)):
-            hl = arg[i].hl
+        for i in range(len(inp)):
+            hl = inp[i].hl
             depthtemp = np.concatenate(([0.],np.cumsum(hl)))
             try:
-                vptemp = arg[i].vp
+                vptemp = inp[i].vp
                 novp = False
             except:
                 print('vp is not found for argument : %d!'%i)
                 novp = True
-            vstemp = arg[i].vs
+            vstemp = inp[i].vs
             depth = [0.]
             vs = [vstemp[0]/1000.]
             if not novp:
@@ -67,18 +55,18 @@ def TFPlot(*arg,**kwargs):
             if not novp:                   
                 vp.append(vp[-1])
                 if i==0:
-                    a2.plot(vp,depth,color=cclist[i],linestyle='-.',label='vp')
-                    a2.plot(vs,depth,color=cclist[i],label='vs')
+                    a2.plot(vp,depth,color=cclist[i],linestyle=':',lw=3.,label='vp')
+                    a2.plot(vs,depth,color=cclist[i],lw=3.,label='vs')
                 else:
-                    a2.plot(vp,depth,color=cclist[i],linestyle='-.')
-                    a2.plot(vs,depth,color=cclist[i])
+                    a2.plot(vp,depth,color=cclist[i],linestyle=':',lw=3.)
+                    a2.plot(vs,depth,color=cclist[i],lw=3.)
                 xmin.append(np.min(vs))
                 xmax.append(np.max(vp))
             else:
                 if i==0:
-                    a2.plot(vs,depth,color=cclist[i])
+                    a2.plot(vs,depth,color=cclist[i],lw=3.)
                 else:
-                    a2.plot(vs,depth,color=cclist[i])
+                    a2.plot(vs,depth,color=cclist[i],lw=3.)
                 xmin.append(np.min(vs))
                 xmax.append(np.max(vs))
                 
@@ -90,6 +78,26 @@ def TFPlot(*arg,**kwargs):
         a2.set_xlabel('Velocity (km/s)')
         a2.set_ylabel('Depth (m)')
         a2.set_title('Velocity profile')
+
+def TFPlot(*arg,**kwargs):
+    # check given axis name
+    try:
+        axname = kwargs['axname']
+    except KeyError:
+        axname = None
+    try:
+        label = kwargs['label']
+    except KeyError:
+        label = ['']*(len(arg))
+    # create new figure is axis name is not given
+    if axname==None:
+        f = plt.figure(figsize=(14.,7.),dpi=300)
+        
+        # create default color cycle
+        cclist = colorcycle(len(arg))        
+        
+        a2= f.add_subplot(1,5,5)
+        velocityprofileplot(arg,a2,cclist)
         
         a = f.add_subplot(1,5,(1,4))
     else:
@@ -149,69 +157,10 @@ def PhasePlot(*arg,**kwargs):
         f = plt.figure(figsize=(14.,7.),dpi=300)
         
         # create default color cycle
-        clist = cm.rainbow(np.arange(1000))
-        #for i in range(len(arg)):
-        cclist = []
-        if len(arg)>=2:
-            for i in range(len(arg)-1):
-                n = 1000/(len(arg)-1)
-                cclist.append(clist[n*i])
-        cclist.append(clist[-1])
+        cclist = colorcycle(len(arg))    
         
         a2= f.add_subplot(1,5,5)
-        xmax = []
-        xmin = []
-        for i in range(len(arg)):
-            hl = arg[i].hl
-            depthtemp = np.concatenate(([0.],np.cumsum(hl)))
-            try:
-                vptemp = arg[i].vp
-                novp = False
-            except:
-                print('vp is not found for argument : %d!'%i)
-                novp = True
-            vstemp = arg[i].vs
-            depth = [0.]
-            vs = [vstemp[0]/1000.]
-            if not novp:
-                vp = [vptemp[0]/1000.]
-            for j in range(1,len(hl)):
-                depth.append(depthtemp[j])
-                depth.append(depthtemp[j])
-                vs.append(vstemp[j-1]/1000.)
-                vs.append(vstemp[j]/1000.)  
-                if not novp:
-                    vp.append(vptemp[j-1]/1000.)
-                    vp.append(vptemp[j]/1000.) 
-                  
-            depth.append(depth[-1]+0.1*depth[-1])
-            vs.append(vs[-1])
-            if not novp:                   
-                vp.append(vp[-1])
-                if i==0:
-                    a2.plot(vp,depth,color=cclist[i],linestyle='-.',label='vp')
-                    a2.plot(vs,depth,color=cclist[i],label='vs')
-                else:
-                    a2.plot(vp,depth,color=cclist[i],linestyle='-.')
-                    a2.plot(vs,depth,color=cclist[i])
-                xmin.append(np.min(vs))
-                xmax.append(np.max(vp))
-            else:
-                if i==0:
-                    a2.plot(vs,depth,color=cclist[i])
-                else:
-                    a2.plot(vs,depth,color=cclist[i])
-                xmin.append(np.min(vs))
-                xmax.append(np.max(vs))
-                
-        a2.set_ylim(np.min(depth),np.max(depth)) 
-        a2.set_xlim(min(xmin)-0.05,max(xmax)+0.05)
-        a2.legend(loc='best',fancybox=True,framealpha=0.5)
-        a2.invert_yaxis()
-        a2.grid(True)
-        a2.set_xlabel('Velocity (km/s)')
-        a2.set_ylabel('Depth (m)')
-        a2.set_title('Velocity profile')
+        velocityprofileplot(arg,a2,cclist)
         
         a = f.add_subplot(1,5,(1,4))
     else:

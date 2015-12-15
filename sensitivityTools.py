@@ -69,7 +69,7 @@ def sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[0.,90.,91
     data['y'] = y
     data['z'] = z
     
-    print('average elapsed time : %.6f with standard deviation : %.6f'%(np.mean(elapsed),np.std(elapsed)))
+    print('method : %s; average elapsed time : %.6f with standard deviation : %.6f'%(method,np.mean(elapsed),np.std(elapsed)))
     SpectroPlot(data,nx=100,ny=100,ylabel=ylabel,cmap='rainbow')
     plt.title('Sensitivity analysis on %s using %s method'%(sensitivity,method))
 
@@ -80,6 +80,7 @@ fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
 sensitivityTools(fname,sensitivity='incidence angle',method='tf_kramer286_sh')
 sensitivityTools(fname,sensitivity='incidence angle',method='tf_knopoff_sh')
 sensitivityTools(fname,sensitivity='incidence angle',method='tf_knopoff_sh_adv')
+sensitivityTools(fname,sensitivity='incidence angle',method='tf_kennet_sh')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='incidence angle',method='tf_knopoff_psv_adv')
 
