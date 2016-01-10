@@ -236,9 +236,9 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
         if data['modeID']>=5:
             if type(data['vp'][0])==list:
                 lvp = len(data['vp'][0])
-                clistvp = cm.cold(np.arange(lvp))
+                clistvp = cm.cool(np.arange(lvp))
                 for i in range(len(data['vp'][0])):
-                    vptemp = np.concatenate((data['vp'][0][i],data['vp'][1:]))
+                    vptemp = np.concatenate(([data['vp'][0][i]],data['vp'][1:]))
                     depthtemp = np.concatenate(([0.],np.cumsum(data['hl'])))
                     
                     depth = [0.]
@@ -274,7 +274,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
             lvs = len(data['vs'][0])
             clistvs = cm.hot(np.arange(lvs))
             for i in range(len(data['vs'][0])):
-                vstemp = np.concatenate((data['vs'][0][i],data['vs'][1:]))
+                vstemp = np.concatenate(([data['vs'][0][i]],data['vs'][1:]))
                 depthtemp = np.concatenate(([0.],np.cumsum(data['hl'])))
                 
                 depth = [0.]
@@ -303,7 +303,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
                 vs.append(vstemp[j]/1000.)   
             depth.append(depth[-1]+0.1*depth[-1])
             vs.append(vs[-1])             
-            
+
             a2.plot(vs,depth,color='r')
             xmin.append(np.min(vs))
             xmax.append(np.max(vs))
@@ -312,7 +312,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     else:
         if data['modeID']>=5:
             ld = len(data['hl'][0])
-            clistvp = cm.cold(np.arange(ld))
+            clistvp = cm.cool(np.arange(ld))
             clistvs = cm.hot(np.arange(ld))
             for i in range(len(data['hl'][0])):
                 hl = np.concatenate(([data['hl'][0][i]],data['hl'][1:]))

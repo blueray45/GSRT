@@ -1,0 +1,52 @@
+# calculation mode :
+#		'sh-linear-elastic'
+#       'sh-linear-viscoelastic'
+#       'sh-linear-elastic-adv'
+#       'sh-linear-viscoelastic-adv'
+#       'linear-equivalent'
+#       'non-linear'
+sh-linear-viscoelastic
+# input motion (unit in m/s^2); filetype (ascii)
+ricker.dat ascii
+# angle of indicidence (degree)
+0.
+# location of source
+31
+#number of TF relation
+1
+#TF relation (top layer, bottom layer)
+1 31
+# number of layer
+31
+#thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 300. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+1. 500. 1500. 30.
+0. 1000. 1500. 5000.

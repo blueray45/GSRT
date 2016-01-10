@@ -11,13 +11,18 @@ ricker.dat ascii
 # angle of indicidence (degree)
 0.
 # location of source
-2
+7
 #number of TF relation
 1
 #TF relation (top layer, bottom layer)
-1 2
+1 7
 # number of layer
-2
+7
 #thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
-30. 400. 1500. 30.
+5. 188. 1500. 30.
+5. 300. 1500. 30.
+5. 500. 1500. 30.
+5. 600. 1500. 30.
+5. 700. 1500. 30.
+5. 800. 1500. 30.
 0. 1000. 1500. 5000.
