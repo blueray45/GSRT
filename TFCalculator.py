@@ -12,7 +12,7 @@ import numpy as np
 from copy import deepcopy
 
 class TFCalculator:
-    def __init__(self,data):
+    def __init__(self,data,freq=None):
         self.mode = data['mode']                  # calculation mode
         self.modeID = cd.mode.index(self.mode)
         self.ntf = data['ntf']                   # number of transfer function pairs
@@ -29,8 +29,10 @@ class TFCalculator:
             self.vp = np.array(data['vp'])
             self.qp = np.array(data['qp'])
             self.comp = np.array(data['comp'])
-        
-        self.freq = np.linspace(1.,50.,1024)
+        if freq==None:
+            self.freq = np.linspace(1.,50.,1024)
+        else:
+            self.freq = freq
         
     def tf_kramer286_sh(self):
         """
@@ -822,16 +824,13 @@ class TFCalculator:
         qp = self.qp
         comp = self.comp
         
-        print 'mode'
-        print self.mode
-        
         #freq0 = 10.         # reference frequency for Q <-- WHY?
         q = 1.e+20          # ????
         iang = self.iang    # incidence angle (radians)
         if comp=='s':
-            mode = 1
-        else:
             mode = 2
+        else:
+            mode = 1
         jcas = 0            # jcas <-- 0 means with free surface, 1 means infinite medium
         nr = len(tfpair)    # number of receiver given by the pair of input and output motion
         zr = np.array([tfpair[i][0]*hl for i in range(len(tfpair))])
@@ -901,10 +900,11 @@ class TFCalculator:
             for li in range(nlayer):
                 wza[li] = -wza[li] if np.imag(wza[li])>0 else wza[li]
                 wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
-   
+            if i==0:
+                print np.shape(f)
             for ir in range(nr):
                 li = izr[ir]
-                li1=4*li-3
+                li1=4*li
                 li2=li1+1
                 li3=li2+1
                 li4=li3+1
@@ -913,14 +913,10 @@ class TFCalculator:
                 phassu=np.exp(1j*wzb[li]*z)
                 phaspd=1./phaspu
                 phassd=1./phassu
-                
                 u1 = -1j*wx0
                 u4 = 1j*wzb[li]
                 w1 = 1j*wza[li]
-                if comp == 'p':
-                    modes = 0
-                else:
-                    modes = 1
+                modes = mode-1
                 f1 = f[li1,modes]*phaspu
                 f2 = f[li2,modes]*phaspd
                 f3 = f[li3,modes]*phassu
@@ -929,6 +925,9 @@ class TFCalculator:
                 uv0 = w1*(f1-f2) + u1*(f3+f4)
                 u[i,ir] = uh0*c1
                 w[i,ir] = uv0*c1
+                
+                if i==0:
+                    print np.abs(u[i,ir])
         if mode==1 or mode==2:
             htf = u/2.
             vtf = w/2.
@@ -1070,70 +1069,6 @@ class TFCalculator:
             raise IOError('Unsupported type of calculation!')
                          
     def tf_kennet_sh(self):
-        """
-        """        
-        """
-        # uniforming variable
-        mode = self.mode
-        modeID = self.modeID
-        ntf = self.ntf
-        tfpair = self.tfpair
-        nlayer = self.nlayer
-        hl = self.hl
-        vs = self.vs
-        dn = self.dn
-        qs = self.qs
-        freq = self.freq
-        iang = self.iang
-        
-        # calculate complex velocity
-        vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
-        
-        
-        # calculate reflection and transmission coefficient
-        ru = np.zeros((nlayer-1),dtype='complex128')
-        rd = np.zeros((nlayer-1),dtype='complex128')
-        tu = np.zeros((nlayer-1),dtype='complex128')
-        td = np.zeros((nlayer-1),dtype='complex128')
-        for i in range(nlayer-1):
-            ru[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'rssu')
-            rd[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'rssd')
-            tu[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'tssu')
-            td[i] = self.RTcoefficientsSH(dn[i:i+2],vs[i:i+2],iang,'tssd')        
-        
-        print ru,rd
-        print tu,td
-        
-        # overall reflection and transmission for bottom layer
-        Td0 = 1.0+0j
-        Tu0 = 1.0+0j
-        Rd0 = 0.0+0j
-        Ru0 = 0.0+0j
-        I = 1+0j
-        
-        print type(Td0)        
-        
-        for i in range(nlayer-2,-1,-1):
-            # downward propagation
-            Td = Td0*(1./(I-ru[i]*Rd0))*td[i]
-            Rd = rd[i]+tu[i]*Rd0*(1./(I-ru[i]*Rd0))*td[i]
-            # upward propagation
-            Tu = tu[i]*(1./(I-Rd0*ru[i]))*Tu0
-            Ru = Ru0+Td0*(1./(I-ru[i]*Rd0))*tu[i]*Tu0
-            
-            Td0 = deepcopy(Td)
-            Tu0 = deepcopy(Tu)
-            Rd0 = deepcopy(Rd)
-            Ru0 = deepcopy(Ru)
-            
-        TR = np.asarray([[Tu-Rd*(1/Td)*Ru, Rd/Td],
-                         [-(1./Td)*Ru, 1./Td]])
-        
-        print'TR'
-        print TR
-        print np.linalg.inv(TR)
-        print np.allclose(np.dot(TR,np.linalg.inv(TR)),np.eye(2))
-        """
         """
         porting from geopsy based on kennet formalism
         Pierre-Yves Bard (LGIT, Grenoble, France)
@@ -1325,8 +1260,10 @@ class TFCalculator:
                 z=zr[0][ir]-th[li]
                 phassu=np.exp(1j*wzb[li]*z)
                 phassd=1./phassu
-                
                 v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
+                
+                if i==0:
+                    print np.abs(v[i,ir])
             htft = v/2.
             vtft = np.zeros_like(htft)
         self.tf.append(htft[:,0])

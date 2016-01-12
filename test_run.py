@@ -20,10 +20,12 @@ import TFDisplayTools
 # filename
 fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
+fname3 = 'GoverGmax.dat'
 
 # input file reading
 datash = IOfile.parsing_input_file(fname)
 datapsv = IOfile.parsing_input_file(fname2)
+datanonlin = IOfile.parsing_nonlinear_parameter(fname3,True)
 
 # kramer
 print 'TF calculatoin using kramer approach'

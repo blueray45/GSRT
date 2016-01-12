@@ -156,3 +156,72 @@ def blockreader(blockID,line):
     elif blockID==9:
         shl,svp,svs,srho,sqp,sqs = line.split()
         return float(shl),float(svp),float(svs),float(srho),float(sqp),float(sqs)
+        
+def parsing_nonlinear_parameter(fname,verbose=False):
+    """
+    function to read non linear parameter
+    file format (ascii):
+        "number of soil types --> N"
+        "number of strain on soil type I"
+        "strain"   "G/Gmax"  "Damping Ratio"
+        "number of strain on soil type II"
+        "strain"   "G/Gmax"  "Damping Ratio"
+        ...
+        "number of strain on soil type N"
+        "strain"   "G/Gmax"  "Damping Ratio"
+    """
+    
+    with open(fname) as f:
+        lineID = 0
+        nonlinpar = {}
+        for line in f:
+            if lineID==0:
+                nonlinpar['N soil type']=int(line)
+                nonlinpar['n-samples']=[]
+                nonlinpar['nonlin strain']=[[] for _ in range(nonlinpar['N soil type'])]
+                nonlinpar['nonlin G/Gmax']=[[] for _ in range(nonlinpar['N soil type'])]
+                nonlinpar['nonlin damping']=[[] for _ in range(nonlinpar['N soil type'])]
+                lineID += 1
+                lineSoilType = 0
+            elif lineID==1:
+                nonlinpar['n-samples'].append(int(line))
+                lineID += 1
+                lineSoilLine = 1
+            elif lineID==2:
+                tmp = line.split()
+                nonlinpar['nonlin strain'][lineSoilType].append(float(tmp[0]))
+                nonlinpar['nonlin G/Gmax'][lineSoilType].append(float(tmp[1]))
+                nonlinpar['nonlin damping'][lineSoilType].append(float(tmp[2]))
+                if lineSoilLine<nonlinpar['n-samples'][-1]:
+                    lineSoilLine += 1
+                else:
+                    lineSoilLine = 1
+                    if lineSoilType+1==nonlinpar['N soil type']:
+                        break
+                    else:
+                        lineSoilType += 1
+                        lineID = 1
+        if verbose:
+            print('')
+            print('Number of non linear set of soil profile : %i'%nonlinpar['N soil type'])
+            for i in range(nonlinpar['N soil type']):
+                print('Soil ID : %2i'%i)
+                print('\tMin/Max strain \t: %1.5f and %1.5f'%(min(nonlinpar['nonlin strain'][i]),max(nonlinpar['nonlin strain'][i])))
+                print('\tMin/Max G/Gmax \t: %1.5f and %1.5f'%(min(nonlinpar['nonlin G/Gmax'][i]),max(nonlinpar['nonlin G/Gmax'][i]))) 
+                print('\tMin/Max Damping ratio \t: %2.4f and %2.4f'%(min(nonlinpar['nonlin damping'][i]),max(nonlinpar['nonlin damping'][i])))
+            print('')
+        return nonlinpar
+
+def read_ascii_seismogram(fname):
+    """
+    read seismogram with ascii format
+    'time' 'amplitude (m/s^2)'
+    """
+    time = []
+    amp = []
+    with open(fname) as f:
+        for line in f:
+            tmp = line.split()
+            time.append(float(tmp[0]))
+            amp.append(float(tmp[1]))
+    return time,amp
