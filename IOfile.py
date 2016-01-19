@@ -40,6 +40,7 @@ def parsing_input_file(fname):
 
     # reading the whole configuration
     data = {}
+    data['parfile'] = fname
     data['sensitifity'] = False
     with open(fname) as f:
         
@@ -63,14 +64,24 @@ def parsing_input_file(fname):
         
         if modeID<11:
             if modeID<5:
-                blockSeq = [1,2,3,4,5,6,7,8]
+                blockSeq = [1,2,11,3,4,5,6,7,8]
             elif modeID<11:
-                blockSeq = [1,2,3,4,5,6,7,9]
+                blockSeq = [1,2,11,3,4,5,6,7,9]
+            elif modeID==11:
+                blockSeq = [1,2,11,10,3,4,5,6,7,8]
+            elif modeID==12:
+                blockSeq = [1,2,11,10,3,4,5,6,7,9]
             IDSeq = 1
             for line in f:
                 if not comment_check(line):
                     if blockSeq[IDSeq]==2:
                         data['inputmotion'] = blockreader(blockSeq[IDSeq],line)
+                        IDSeq+=1
+                    elif blockSeq[IDSeq]==11:
+                        data['inputtype'] = blockreader(2,line)
+                        IDSeq+=1
+                    elif blockSeq[IDSeq]==10:
+                        data['GoverGmaxfile'] = blockreader(2,line)
                         IDSeq+=1
                     elif blockSeq[IDSeq]==3:
                         data['iang'] = blockreader(blockSeq[IDSeq],line)

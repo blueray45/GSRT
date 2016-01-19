@@ -1,0 +1,27 @@
+# calculation mode :
+#	   'sh-linear-elastic'
+#       'sh-linear-viscoelastic'
+#       'sh-linear-elastic-adv'
+#       'sh-linear-viscoelastic-adv'
+#       'linear-equivalent'
+#       'non-linear'
+linear-equivalent
+# input motion (unit in m/s^2); filetype (ascii)
+ricker.dat ascii
+# input type (outcrop or borehole)
+outcrop
+# G/Gmax and damping ratio file
+GoverGmax.dat
+# angle of indicidence (degree)
+0.
+# location of source
+2
+#number of TF relation
+1
+#TF relation (top layer, bottom layer)
+1 2
+# number of layer
+2
+#thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
+30. 400. 1500. 30.
+0. 1000. 1500. 5000.

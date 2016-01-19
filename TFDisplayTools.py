@@ -80,6 +80,11 @@ def velocityprofileplot(inp,a2,cclist):
         a2.set_title('Velocity profile')
 
 def TFPlot(*arg,**kwargs):
+    # check tfid plot
+    try:
+        tfid = kwargs['tfid']
+    except:
+        tfid = 0
     # check given axis name
     try:
         axname = kwargs['axname']
@@ -122,7 +127,6 @@ def TFPlot(*arg,**kwargs):
     #    raise InputError('Number or input pairs if not correct! Detected input pairs is %.1f.'%len(arg)/2.)
     # check length of each pairs and plot data
     minx = []; maxx = []; miny = []; maxy = []
-    tfid=0
     for i in range(len(arg)):    
         freq = arg[i].freq
         tf = arg[i].tf       
@@ -143,6 +147,11 @@ def TFPlot(*arg,**kwargs):
     f.tight_layout()
     
 def PhasePlot(*arg,**kwargs):
+    # check tfid plot
+    try:
+        tfid = kwargs['tfid']
+    except:
+        tfid = 0
     # check given axis name
     try:
         axname = kwargs['axname']
@@ -181,7 +190,6 @@ def PhasePlot(*arg,**kwargs):
         #axis.set_minor_formatter(ScalarFormatter())
     
     # check length of each pairs and plot data
-    tfid = 0
     minx = []; maxx = []; miny = []; maxy = []
     for i in range(len(arg)):
         freq = arg[i].freq

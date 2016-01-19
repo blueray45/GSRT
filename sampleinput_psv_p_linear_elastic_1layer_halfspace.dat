@@ -8,8 +8,10 @@
 psv-p-linear-viscoelastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
 ricker.dat ascii
+# input type (outcrop or borehole)
+borehole
 # angle of indicidence (degree)
-0.
+5.
 # location of source
 2
 #number of TF relation

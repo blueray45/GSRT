@@ -8,6 +8,8 @@
 sh-linear-viscoelastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
 ricker.dat ascii
+# input type (outcrop or borehole)
+outcrop
 # angle of indicidence (degree)
 0.
 # location of source

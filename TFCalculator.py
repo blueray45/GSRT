@@ -10,9 +10,10 @@ www.github.com/GSRT
 import commondata as cd
 import numpy as np
 from copy import deepcopy
+import IOfile
 
 class TFCalculator:
-    def __init__(self,data,freq=None):
+    def __init__(self,data,freq=[],verbose=False):
         self.mode = data['mode']                  # calculation mode
         self.modeID = cd.mode.index(self.mode)
         self.ntf = data['ntf']                   # number of transfer function pairs
@@ -24,12 +25,35 @@ class TFCalculator:
         self.qs = np.array(data['qs'])          # quality factor
         self.slayer = data['sourceloc']
         self.iang = data['iang']
+        self.verbose = verbose
+        try:
+            self.GoverGmaxfile = data['GoverGmaxfile']
+        except:
+            if self.verbose:
+                print('GoverGmaxfile is not specified!')
+        self.inputmotion = data['inputmotion']
+        self.parfile = data['parfile']
+        
+        if data['inputtype'][0]=='borehole':
+            self.inputtype=False
+        elif data['inputtype'][0]=='outcrop':
+            self.inputtype=True
 
         if self.modeID>4:                
             self.vp = np.array(data['vp'])
             self.qp = np.array(data['qp'])
             self.comp = np.array(data['comp'])
-        if freq==None:
+
+        try:
+            if self.inputmotion[1]=='ascii':
+                inp_time,inp_signal = IOfile.read_ascii_seismogram(self.inputmotion[0])
+                fmax = 1./(2*(inp_time[1]-inp_time[0]))
+                freq = np.linspace(0.,fmax,len(inp_signal)/2)
+                #freq = np.fft.fftfreq(len(inp_signal)/2,d=inp_time[1]-inp_time[0])
+        except:
+            freq = []
+            
+        if freq==[]:
             self.freq = np.linspace(1.,50.,1024)
         else:
             self.freq = freq
@@ -80,8 +104,10 @@ class TFCalculator:
             amp = np.zeros((len(self.freq)),dtype='complex128')
             vtf = np.zeros((len(self.freq)),dtype='complex128')
             for i in range(len(self.freq)):
-                amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(2.*A[self.tfpair[j][1],i])
-                #amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(A[self.tfpair[j][1],i]+B[self.tfpair[j][1],i])
+                if self.inputtype:
+                    amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(2.*A[self.tfpair[j][1],i])
+                else:
+                    amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(A[self.tfpair[j][1],i]+B[self.tfpair[j][1],i])
             self.tf.append(amp)
             self.tf.append(vtf)
         return self.tf
@@ -181,8 +207,12 @@ class TFCalculator:
                 As = solve(CORE,Ds)
                 
                 # transfer function
-                hft[nf] = (As[tfpair[tfp][0]*2+1][0]-As[tfpair[tfp][0]*2][0])/ \
-                    (2.*As[tfpair[tfp][1]*2+1][0])
+                if self.inputtype:
+                    hft[nf] = (As[tfpair[tfp][0]*2+1][0]-As[tfpair[tfp][0]*2][0])/ \
+                        (2.*As[tfpair[tfp][1]*2+1][0])
+                else:
+                    hft[nf] = (As[tfpair[tfp][0]*2+1][0]-As[tfpair[tfp][0]*2][0])/ \
+                        (As[tfpair[tfp][1]*2+1][0]-As[tfpair[tfp][1]*2][0])
                     
             self.tf.append(hft)
             self.tf.append(vft)
@@ -293,8 +323,12 @@ class TFCalculator:
                     A[:] = np.nan
                     
                 # transfer function
-                hft[nf] = (A[tfpair[tfp][0]*2+1][0]+A[tfpair[tfp][0]*2][0])/ \
-                    (2.*A[tfpair[tfp][1]*2+1][0])
+                if self.inputtype:
+                    hft[nf] = (A[tfpair[tfp][0]*2+1][0]+A[tfpair[tfp][0]*2][0])/ \
+                        (2.*A[tfpair[tfp][1]*2+1][0])
+                else:
+                    hft[nf] = (A[tfpair[tfp][0]*2+1][0]+A[tfpair[tfp][0]*2][0])/ \
+                        (A[tfpair[tfp][1]*2+1][0]+A[tfpair[tfp][1]*2][0])                    
                     
             self.tf.append(hft)
             self.tf.append(vft)
@@ -488,26 +522,29 @@ class TFCalculator:
                     print 'ValueError TFCalculater.py'
                     A[:] = np.nan
                     
-                
                 # transfer function
-                htft[nf] = (rp[tfpair[tfp][0]]*(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
-                            ns[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1]))/ \
-                            (2.*(rp[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
-                            ns[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
-                #print rp[tfpair[tfp][0]],(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0]), \
-                #            ns[tfpair[tfp][0]],(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1])
-                vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
-                            rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
-                            (2.*(-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
-                            rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
-                #vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
-                #            rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
-                #            (2.*(-np1[-1]*(A[-2])+ \
-                #            rs[-1]*(A[-1])))
-                #if nf==0:
-                #    print A[4*tfpair[tfp][1]+2],A[4*tfpair[tfp][1]+3]
-                #    print rs
-                #    print -np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2]),rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])
+                if self.inputtype:
+                    htft[nf] = (rp[tfpair[tfp][0]]*(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                                ns[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1]))/ \
+                                (2.*(rp[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
+                                ns[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
+                    vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                                rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
+                                (2.*(-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
+                                rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3])))
+                else:
+                    htft[nf] = (rp[tfpair[tfp][0]]*(A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                                ns[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]-A[tfpair[tfp][0]+1]))/ \
+                                ((rp[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
+                                ns[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3]))- \
+                                (rp[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+0])+ \
+                                ns[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+1])))
+                    vtft[nf] = (np1[tfpair[tfp][0]]*(-A[tfpair[tfp][0]+2]+A[tfpair[tfp][0]+0])+ \
+                                rs[tfpair[tfp][0]]*(A[tfpair[tfp][0]+3]+A[tfpair[tfp][0]+1]))/ \
+                                ((-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+2])+ \
+                                rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+3]))- \
+                                (-np1[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+0])+ \
+                                rs[tfpair[tfp][1]]*(A[4*tfpair[tfp][1]+1])))
             if iang==0.:
                 if comp == 'p':
                     htft[:] = 0.
@@ -832,6 +869,10 @@ class TFCalculator:
         else:
             mode = 1
         jcas = 0            # jcas <-- 0 means with free surface, 1 means infinite medium
+        if self.inputtype:
+            jcas = 0
+        else:
+            jcas = 1
         nr = len(tfpair)    # number of receiver given by the pair of input and output motion
         zr = np.array([tfpair[i][0]*hl for i in range(len(tfpair))])
                             # depth of receiver given as list (BEWARE OF INCOMPATIBILITY!!)
@@ -921,8 +962,12 @@ class TFCalculator:
                 f2 = f[li2,modes]*phaspd
                 f3 = f[li3,modes]*phassu
                 f4 = f[li4,modes]*phassd
-                uh0 = u1*(f1+f2) + u4*(f4-f3)
-                uv0 = w1*(f1-f2) + u1*(f3+f4)
+                if self.inputtype:
+                    uh0 = u1*(f1+f2) + u4*(f4-f3)
+                    uv0 = w1*(f1-f2) + u1*(f3+f4)
+                else:
+                    uh0 = u1*(f1+f2) + u4*(f4-f3)
+                    uv0 = w1*(f1-f2) + u1*(f3+f4)
                 u[i,ir] = uh0*c1
                 w[i,ir] = uv0*c1
                 
@@ -1151,7 +1196,7 @@ class TFCalculator:
                 cash = 1./(1.-rush[ic+1]*mtsh[ic+1])
                 cbsh = tush[ic+1]*mtsh[ic+1]
                 ccsh = cash*tdsh[ic+1]
-                mbsh = rdsh[ic+1]*cbsh*ccsh
+                mbsh = rdsh[ic+1]+cbsh*ccsh
                 mtsh[ic] = me[ic]*me[ic]*mbsh
                 fdosh[ic+1] = ccsh*me[ic]
             
@@ -1210,6 +1255,10 @@ class TFCalculator:
         q = 1.e+20          # ????
         iang = self.iang    # incidence angle (radians)
         jcas = 0            # jcas <-- 0 means with free surface, 1 means infinite medium
+        if self.inputtype:
+            jcas = 0
+        else:
+            jcas = 1
         nr = len(tfpair)    # number of receiver given by the pair of input and output motion
         zr = np.array([tfpair[i][0]*hl for i in range(len(tfpair))])
                             # depth of receiver given as list (BEWARE OF INCOMPATIBILITY!!)
@@ -1260,15 +1309,29 @@ class TFCalculator:
                 z=zr[0][ir]-th[li]
                 phassu=np.exp(1j*wzb[li]*z)
                 phassd=1./phassu
-                v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
                 
-                if i==0:
-                    print np.abs(v[i,ir])
-            htft = v/2.
+                v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
+            if self.inputtype:
+                htft = v/2.
+            else:
+                htft = v
             vtft = np.zeros_like(htft)
         self.tf.append(htft[:,0])
         self.tf.append(vtft[:,0])
         return self.tf
+        
+    def linear_equivalent(self):
+        """
+        Calculation of linear equivalent method for transfer function
+        """
+        from TSCalculator import TSCalculator as TSC
+
+        # test using knopoff SH
+        
+        # initial calculation G/Gmax = 1, damping ratio = 1st value        
+        TSclass = TSC(self.inputmotion,self.parfile)
+        time, amp =TSclass.TF2TS()
+        # 
         
 
 # debugging

@@ -16,6 +16,7 @@ mode = ['sh-linear-elastic',
         'psv-s-linear-viscoelastic-adv',
         'psv-p-kennet',
         'psv-s-kennet',
-        'linear-equivalent',
+        'sh-linear-equivalent',
+        'psv-linear-equivalent',
         'non-linear']
         
