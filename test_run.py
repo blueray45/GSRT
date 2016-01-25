@@ -16,7 +16,7 @@ from TFCalculator import TFCalculator as TFC
 import TFDisplayTools
 
 # single layer test case
-
+"""
 # filename
 fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
@@ -72,32 +72,106 @@ theclass10 = TFC(datapsvs)
 theclass10.tf_kennett_psv()
 print 'calculation has been finished!'
 """
+
+"""
 from TSCalculator import TSCalculator as TSC
 TSclass = TSC('ricker.dat',fname)
 time, amp =TSclass.TF2TS()
+"""
 
 # creating ricker signal
 from scipy import signal
-points = 1024*10
-a = 100.0
-inputmotion = signal.ricker(points,a)*25.
-inputtime = np.linspace(0.,10.,points)
+points = 2000
+a = 5.0
+inputmotion = signal.ricker(points,a)/100.
+inputtime = np.linspace(0.,20.,points)
 with open('ricker.dat','w+') as f:
     for i in range(len(inputtime)):
         f.write('%2.5f %2.5f\n'%(inputtime[i],inputmotion[i]))
+
+
 """
-
-
 # creating dirac signal
-points = 1024*10
-a = 100.0
+points = 2000
 inputmotion = np.zeros(points)
 inputmotion[512] = 1.
-inputtime = np.linspace(0.,10.,points)
+inputtime = np.linspace(0.,20.,points)
 with open('dirac.dat','w+') as f:
     for i in range(len(inputtime)):
         f.write('%2.5f %2.5f\n'%(inputtime[i],inputmotion[i]))
 
+"""
+
+"""
+
+# creating dirac signal for paolucci
+points = 2000
+inputmotion = np.zeros(points)
+inputmotion[512] = 1.
+inputtime = np.linspace(0.,20.,points)
+with open('diracpaolucci.dat','w+') as f:
+    for i in range(len(inputtime)/8):
+        j=i*8
+        f.write('%2.5f %2.5f %2.5f %2.5f %2.5f %2.5f %2.5f %2.5f \n'%(inputmotion[j],inputmotion[j+1],inputmotion[j+2],inputmotion[j+3],
+                                                                      inputmotion[j+4],inputmotion[j+5],inputmotion[j+6],inputmotion[j+7]))
+
+"""
+
+"""
+# creating ricker signal for paolucci
+from scipy import signal
+points = 2000
+a = 100.0
+inputmotion = signal.ricker(points,a)
+inputtime = np.linspace(0.,20.,points)
+with open('rickerpaolucci.dat','w+') as f:
+    for i in range(len(inputtime)/8):
+        j=i*8
+        f.write('%2.5f %2.5f %2.5f %2.5f %2.5f %2.5f %2.5f %2.5f \n'%(inputmotion[j],inputmotion[j+1],inputmotion[j+2],inputmotion[j+3],
+                                                                      inputmotion[j+4],inputmotion[j+5],inputmotion[j+6],inputmotion[j+7]))
+"""
+
+"""
+# read output from paolucci and plot it
+from TSCalculator import TSCalculator
+fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
+datash = IOfile.parsing_input_file(fname)
+theclass2 = TFC(datash)
+theclass2.tf_knopoff_sh()
+TSclass01 = TSCalculator(theclass2)
+TSclass01.linear_TF2TS()
+
+points = 4000
+inputmotion = np.zeros(points/2)
+inputmotion[512] = 1.
+data = []
+with open('psvq.out','r') as f:
+    next(f)
+    for line in f:
+        tmp2= line.split()
+        for i in range(8):
+            data.append(tmp2[i])
+fig = plt.figure(figsize=(12,12))
+a = fig.add_subplot(311)
+a.plot(np.linspace(0.,20.,points),data,label='paolucci code')
+a.plot(np.linspace(0.,20.,points),TSclass01.time_series[0],lw=2,label='knopoff SH')
+a.plot(np.linspace(0.,10.,points/2),inputmotion,label='input motion')
+a.grid(True)
+a.legend(loc='best',fancybox=True,framealpha=0.5)
+a.set_xlim(1,4)
+a = fig.add_subplot(312)
+tmp = np.fft.fftfreq(points,d=0.01)
+a.plot(tmp[:2000],np.abs(np.fft.fft(data))[:2000])
+a.plot(theclass2.freq,np.abs(theclass2.tf[0]))
+a.set_xlim(0,50)
+a.grid(True)
+a = fig.add_subplot(313)
+tmp = np.fft.fftfreq(points,d=0.01)
+a.plot(tmp[:2000],np.angle(np.fft.fft(data))[:2000])
+a.plot(theclass2.freq,np.angle(theclass2.tf[0]))
+a.set_xlim(0,50)
+a.grid(True)
+"""
 
 """
 # additional calculations
@@ -154,7 +228,7 @@ TFDisplayTools.TFPlot(theclass4,theclass10, \
 TFDisplayTools.PhasePlot(theclass4,theclass10, \
     label=['Knopoff PSV','Kennet PSV'])
 """
-
+"""
 # kennet sh
 print 'TF calculation using kennet sh method'
 datash['inputtype'][0]='outcrop'
@@ -170,6 +244,7 @@ TFDisplayTools.TFPlot(theclass1,theclass2,theclass3,theclass4,theclass5,theclass
 TFDisplayTools.PhasePlot(theclass1,theclass2,theclass3,theclass4,theclass5,theclass11, \
     label=['Kramer SH - Borehole','Knopoff Simple SH - Borehole','Knopoff Complete SH - Borehole', \
     'Knopoff PSV - Borehole','Kennet SH - Borehole','Kennet SH - Outcrop'])
+"""
 """
 TFDisplayTools.TFPlot(theclass4, \
     label=['Knopoff PSV-S'],tfid=0)

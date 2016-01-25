@@ -129,7 +129,7 @@ sensitivityTools(fname,sensitivity='incidence angle phase',method='tf_kennet_sh'
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='incidence angle phase',method='tf_knopoff_psv_adv')
 """
-"""
+
 # incidence angle
 print('incidence angle sensitivity analysis for transfer function plot')
 fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
@@ -140,6 +140,7 @@ sensitivityTools(fname,sensitivity='incidence angle',method='tf_kennet_sh')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='incidence angle',method='tf_knopoff_psv_adv')
 
+"""
 # Thickness of layer
 print('thickness sensitivity analysis')
 fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
@@ -160,13 +161,14 @@ sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_knopoff_psv_adv')
 """
+"""
 # incidence angle vectorial
 print('incidence angle sensitivity analysis for transfer function plot')
 fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
 sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[0.,80.,91],method='tf_knopoff_sh_adv')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='incidence angle vectorial',senslinspace=[0.,80.,91],method='tf_knopoff_psv_adv')
-
+"""
 """
 # incidence angle
 print('incidence angle sensitivity analysis')

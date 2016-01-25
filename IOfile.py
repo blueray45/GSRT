@@ -55,22 +55,22 @@ def parsing_input_file(fname):
         data['modeID'] = modeID
         hl = []; vs = []; dn = []; qs = []
         vp = []; qp = [];
-        tfPair = []
+        tfPair = []; soiltype = [];
         layerID=1; TFID=1
         #if mode.lower()==cd.mode[0] or mode.lower()==cd.mode[1] or \
         #    mode.lower()==cd.mode[2] or mode.lower()==cd.mode[3] or\
         #    mode.lower()==cd.mode[4] or mode.lower()==cd.mode[5] or \
         #    mode.lower()==cd.mode[6] or mode.lower()==cd.mode[7]:
-        
-        if modeID<11:
+
+        if modeID<13:
             if modeID<5:
                 blockSeq = [1,2,11,3,4,5,6,7,8]
             elif modeID<11:
                 blockSeq = [1,2,11,3,4,5,6,7,9]
             elif modeID==11:
-                blockSeq = [1,2,11,10,3,4,5,6,7,8]
+                blockSeq = [1,2,11,10,3,4,5,6,7,12]
             elif modeID==12:
-                blockSeq = [1,2,11,10,3,4,5,6,7,9]
+                blockSeq = [1,2,11,10,3,4,5,6,7,13]
             IDSeq = 1
             for line in f:
                 if not comment_check(line):
@@ -124,8 +124,8 @@ def parsing_input_file(fname):
                             vp.append(svp)
                             vs.append(svs)
                             dn.append(sdn)
-                            qp.append(9999. if modeID==4 or modeID==6 else sqp)
-                            qs.append(9999. if modeID==4 or modeID==6 else sqs)
+                            qp.append(9999. if modeID==5 or modeID==7 else sqp)
+                            qs.append(9999. if modeID==5 or modeID==7 else sqs)
                             layerID+=1
                             if layerID>data['nlayer']:
                                 data['hl']=hl
@@ -135,6 +135,43 @@ def parsing_input_file(fname):
                                 data['qp']=qp
                                 data['qs']=qs
                                 data['comp']=mode[4].lower()
+                                IDSeq+=1
+                    elif blockSeq[IDSeq]==12:
+                        if layerID<=data['nlayer']:
+                            shl,svs,sdn,sqs,st = blockreader(blockSeq[IDSeq],line)
+                            hl.append(shl)
+                            vs.append(svs)
+                            dn.append(sdn)
+                            qs.append(9999. if modeID==0 or modeID==2 else sqs)
+                            soiltype.append(int(st))
+                            layerID+=1
+                            if layerID>data['nlayer']:
+                                data['hl']=hl
+                                data['vs']=vs
+                                data['dn']=dn
+                                data['qs']=qs
+                                data['soiltype']=soiltype
+                                IDSeq+=1
+                    elif blockSeq[IDSeq]==13:
+                        if layerID<=data['nlayer']:
+                            shl,svp,svs,sdn,sqp,sqs,st = blockreader(blockSeq[IDSeq],line)
+                            hl.append(shl)
+                            vp.append(svp)
+                            vs.append(svs)
+                            dn.append(sdn)
+                            qp.append(9999. if modeID==5 or modeID==7 else sqp)
+                            qs.append(9999. if modeID==5 or modeID==7 else sqs)
+                            soiltype.append(int(st))
+                            layerID+=1
+                            if layerID>data['nlayer']:
+                                data['hl']=hl
+                                data['vp']=vp
+                                data['vs']=vs
+                                data['dn']=dn
+                                data['qp']=qp
+                                data['qs']=qs
+                                data['comp']=mode[4].lower()
+                                data['soiltype'] = soiltype
                                 IDSeq+=1
             return data
         #elif :
@@ -167,6 +204,12 @@ def blockreader(blockID,line):
     elif blockID==9:
         shl,svp,svs,srho,sqp,sqs = line.split()
         return float(shl),float(svp),float(svs),float(srho),float(sqp),float(sqs)
+    elif blockID==12:
+        shl,svs,srho,sqs,soiltype = line.split()
+        return float(shl),float(svs),float(srho),float(sqs),int(soiltype)
+    elif blockID==13:
+        shl,svp,svs,srho,sqp,sqs,soiltype = line.split()
+        return float(shl),float(svp),float(svs),float(srho),float(sqp),float(sqs),int(soiltype)
         
 def parsing_nonlinear_parameter(fname,verbose=False):
     """

@@ -14,6 +14,7 @@ import IOfile
 
 class TFCalculator:
     def __init__(self,data,freq=[],verbose=False):
+        self.data = data
         self.mode = data['mode']                  # calculation mode
         self.modeID = cd.mode.index(self.mode)
         self.ntf = data['ntf']                   # number of transfer function pairs
@@ -39,16 +40,16 @@ class TFCalculator:
         elif data['inputtype'][0]=='outcrop':
             self.inputtype=True
 
-        if self.modeID>4:                
+        if (self.modeID>4 and self.modeID<=10) or self.modeID==12:                
             self.vp = np.array(data['vp'])
             self.qp = np.array(data['qp'])
             self.comp = np.array(data['comp'])
 
         try:
             if self.inputmotion[1]=='ascii':
-                inp_time,inp_signal = IOfile.read_ascii_seismogram(self.inputmotion[0])
-                fmax = 1./(2*(inp_time[1]-inp_time[0]))
-                freq = np.linspace(0.,fmax,len(inp_signal)/2)
+                self.inp_time,self.inp_signal = IOfile.read_ascii_seismogram(self.inputmotion[0])
+                fmax = 1./(2*(self.inp_time[1]-self.inp_time[0]))
+                freq = np.linspace(0.,fmax,len(self.inp_signal))
                 #freq = np.fft.fftfreq(len(inp_signal)/2,d=inp_time[1]-inp_time[0])
         except:
             freq = []
@@ -105,9 +106,14 @@ class TFCalculator:
             vtf = np.zeros((len(self.freq)),dtype='complex128')
             for i in range(len(self.freq)):
                 if self.inputtype:
-                    amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(2.*A[self.tfpair[j][1],i])
+                    tmp = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(2.*A[self.tfpair[j][1],i])
                 else:
-                    amp[i] = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(A[self.tfpair[j][1],i]+B[self.tfpair[j][1],i])
+                    tmp = (A[self.tfpair[j][0],i]+B[self.tfpair[j][0],i])/(A[self.tfpair[j][1],i]+B[self.tfpair[j][1],i])
+                # phase correction <-- need to be corrected in the future
+                ampabs = np.abs(tmp)
+                ampang = -np.angle(tmp)
+                amp[i]=ampabs*np.cos(ampang)+ampabs*np.sin(ampang)*1j
+
             self.tf.append(amp)
             self.tf.append(vtf)
         return self.tf
@@ -1277,83 +1283,49 @@ class TFCalculator:
         # iterating over frequencies
         v = np.zeros((nf,nr),dtype='complex128')
         self.tf = []
-        for i,fr in enumerate(freq):
-            fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
-            rw = fr*np.pi*2.
-            omega = np.complex(rw,aw)
-            
-            # calculating complex velocity
-            cvs = vs*((2.*qs*1j)/(2.*qs*1j-1.)) 
-            wb = omega/cvs      # omega for vs
-            wb2 = wb**2
-            
-            wx0 = wb[nlayer-1]*np.sin(iang)
-            wx02 = wx0**2
-            if i==0:
-                f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs,verbose=True)
-            else:
-                f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs)
-            
-            # if mode = 3 :
-            #   1 = upgoing sh wave
-            #   2 = downgoing sh wave
-            wzb = np.zeros_like(cvs)
-            wzb = np.sqrt(wb2-wx02)
-            for li in range(nlayer):
-                wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
+        for j in range(ntf):
+            for i,fr in enumerate(freq):
+                fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
+                rw = fr*np.pi*2.
+                omega = np.complex(rw,aw)
                 
-            for ir in range(nr):
-                li = izr[ir]
-                lish1=2*li
-                lish2=lish1+1
-                z=zr[0][ir]-th[li]
-                phassu=np.exp(1j*wzb[li]*z)
-                phassd=1./phassu
+                # calculating complex velocity
+                cvs = vs*((2.*qs*1j)/(2.*qs*1j-1.)) 
+                wb = omega/cvs      # omega for vs
+                wb2 = wb**2
                 
-                v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
-            if self.inputtype:
-                htft = v/2.
-            else:
-                htft = v
-            vtft = np.zeros_like(htft)
-        self.tf.append(htft[:,0])
-        self.tf.append(vtft[:,0])
+                wx0 = wb[nlayer-1]*np.sin(iang)
+                wx02 = wx0**2
+                if i==0:
+                    f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs,verbose=True)
+                else:
+                    f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs)
+                
+                # if mode = 3 :
+                #   1 = upgoing sh wave
+                #   2 = downgoing sh wave
+                wzb = np.zeros_like(cvs)
+                wzb = np.sqrt(wb2-wx02)
+                for li in range(nlayer):
+                    wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
+                    
+                for ir in range(nr):
+                    li = izr[ir]
+                    lish1=2*li
+                    lish2=lish1+1
+                    z=zr[0][ir]-th[li]
+                    phassu=np.exp(1j*wzb[li]*z)
+                    phassd=1./phassu
+                    
+                    v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
+                if self.inputtype:
+                    htft = v/2.
+                else:
+                    htft = v
+                vtft = np.zeros_like(htft)
+            self.tf.append(htft[:,0])
+            self.tf.append(vtft[:,0])
         return self.tf
-        
-    def linear_equivalent(self):
-        """
-        Calculation of linear equivalent method for transfer function
-        """
-        from TSCalculator import TSCalculator as TSC
-
-        # test using knopoff SH
-        
-        # initial calculation G/Gmax = 1, damping ratio = 1st value        
-        TSclass = TSC(self.inputmotion,self.parfile)
-        time, amp =TSclass.TF2TS()
-        # 
         
 
 # debugging
-"""
-import IOfile
-fname2 = 'sampleinput_linear_elastic_6layer_halfspace.dat'
-data2 = IOfile.parsing_input_file(fname2)
-theclass2 = TFCalculator(data2)
-theclass2.tf_kennet_sh()
-"""
-"""
-import IOfile
-fname2 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
-data2 = IOfile.parsing_input_file(fname2)
-theclass2 = TFCalculator(data2)
-htf,vtf = theclass2.tf_kennett()
-print np.shape(htf)
-import pylab as plt
-plt.plot(np.abs(htf))
-plt.grid(True,which='both')
-plt.xscale('log')
-plt.yscale('log')
-plt.axis('Tight')
-print htf
-"""

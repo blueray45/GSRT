@@ -54,7 +54,7 @@ def velocityprofileplot(inp,a2,cclist):
             vs.append(vs[-1])
             if not novp:                   
                 vp.append(vp[-1])
-                if i==0:
+                if i==len(inp)-1:
                     a2.plot(vp,depth,color=cclist[i],linestyle=':',lw=3.,label='vp')
                     a2.plot(vs,depth,color=cclist[i],lw=3.,label='vs')
                 else:
@@ -63,8 +63,8 @@ def velocityprofileplot(inp,a2,cclist):
                 xmin.append(np.min(vs))
                 xmax.append(np.max(vp))
             else:
-                if i==0:
-                    a2.plot(vs,depth,color=cclist[i],lw=3.)
+                if i==len(inp)-1:
+                    a2.plot(vs,depth,color=cclist[i],lw=3.,label='vs')
                 else:
                     a2.plot(vs,depth,color=cclist[i],lw=3.)
                 xmin.append(np.min(vs))
@@ -232,10 +232,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     # plot the data
     f = plt.figure(figsize=(16.,8.),dpi=300)
     
-    # plot velocity profile
-    #print data
-    #print data.hl
-    #print data['hl']
+    # plot velocity profile   
     a2= f.add_subplot(1,5,5)
     if type(data['hl'][0])==float:
         xmin = []
@@ -369,13 +366,15 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     a2.set_xlabel('Velocity (km/s)')
     a2.set_ylabel('Depth (m)')
     a2.set_title('Velocity profile')
+    
     # plot data
     a = f.add_subplot(1,5,(1,4))
     #zi = np.log10(zi)
     #z = np.log10(z)
+    
     am = a.imshow(zi, vmin=0.1, vmax=z.max(), origin='lower', extent=[x.min(), x.max(), y.min(), y.max()],
              aspect = 'auto',norm=LogNorm())
-
+    
     a.set_xlabel('Frequency (Hz)')
     a.set_ylabel(ylabel)
     a.set_xscale('log')

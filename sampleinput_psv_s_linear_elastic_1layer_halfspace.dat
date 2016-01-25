@@ -5,9 +5,9 @@
 #       'sh-linear-viscoelastic-adv'
 #       'linear-equivalent'
 #       'non-linear'
-psv-s-linear-viscoelastic-adv
+psv-s-linear-elastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
-ricker.dat ascii
+dirac.dat ascii
 # input type (outcrop or borehole)
 outcrop
 # angle of indicidence (degree)
