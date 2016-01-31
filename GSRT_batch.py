@@ -5,7 +5,7 @@ Created on Sun Jan 31 02:06:13 2016
 @author: irnakat
 """
 
-bigmachine = False
+bigmachine = True
 
 # batch test transfer function
 import datetime
@@ -615,7 +615,8 @@ with open(fname,'w+') as f:
             
         print(' --> OK')
 
-globalelapsed = (time.clock()-globalstart)
+    globalelapsed = (time.clock()-globalstart)
+    f.write('Total Elapsed Time : %.4f'%globalelapsed)
 print('Total elapsed time : %.4f'%globalelapsed)
     
 #print ('\nreading log file\n')
