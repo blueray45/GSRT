@@ -8,25 +8,46 @@ from TFCalculator import TFCalculator as TFC
 import numpy as np
 import IOfile
 import scipy.signal as signal
+import GSRTtools as GT
+from copy import deepcopy
 
 # temporary import for debugging
 import pylab as plt
 
 class TSCalculator:
     """
-    class which manages calculation of TimeSeries (TS) given the Transfer Function (TF)
+    class which manages calculation of TimeSeries (TS) given the parameter file and input file
     """
-    def __init__(self,parfile,method='knopoff_sh'):
+    def __init__(self,parfile,method='knopoff_sh',sublayercriteria = 5.,numiter = 10,conv_level = 0.01,verbose=False):
+        # parameter file initialization
         self.parfile = parfile
+        # read file parameter
         self.parameters = IOfile.parsing_input_file(parfile)
+        # checking input file
         if self.parameters['inputmotion'][1]=='ascii':
             self.inp_time,self.inp_signal = IOfile.read_ascii_seismogram(self.parameters['inputmotion'][0])
+        else:
+            raise KeyError('Input motion other than ascii format is not yet supported! Please convert it to displacement on another software first!')
+        self.inp_signal = [i/100. for i in self.inp_signal]
         self.fs = 1/(self.inp_time[1]-self.inp_time[0])
+        self.dt = self.inp_time[1]-self.inp_time[0]
+        self.df = 1./((len(self.inp_signal)-1)*self.dt)
+        
+        if self.parameters['inputmotion'][2]=='vel':
+            self.inp_signal = GT.vel2disp(self.inp_signal,self.dt)
+            self.inp_signal = self.cosine_tapering(self.inp_signal)
+            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
+        elif self.parameters['inputmotion'][2]=='acc':
+            self.inp_signal = GT.acc2disp(self.inp_signal,self.dt)
+            self.inp_signal = self.cosine_tapering(self.inp_signal)
+            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
+            
         self.method = method
         if self.parameters['modeID']==11 or self.parameters['modeID']==12:
-            self.linear_equivalent_TF2TS()
+            self.linear_equivalent_TF2TS(sublayercriteria,numiter,conv_level,verbose)
         else:
             self.linear_TF2TS()
+            self.lastiter = 1
         
     def cosine_tapering(self,inp_signal,alpha=0.10):
         window = signal.tukey(len(inp_signal),alpha=alpha,sym=True)
@@ -79,53 +100,21 @@ class TSCalculator:
         # if domain is frequency, then : 
         # data --> DFT of data
         # IR --> DFT of IR
-        """
-        tmp = np.real(np.fft.ifft(tf))
-        tmp2= np.zeros_like(tmp)
-        tmp2[:2000]=tmp[2000:]
-        tmp2[2000:]=tmp[:2000]
-        fig1 = plt.figure(figsize=(12,8))
-        ax = fig1.add_subplot(311)
-        ts = np.linspace(-10,10,4000)
-        ax.plot(ts,tmp2,label='original impulse response')
-        ax.set_xlim(-0.5,0.5)
-        ax.set_ylim(-0.5,1.7)
-        ax.grid()
-        ax.legend()
-        
-        ax = fig1.add_subplot(312)
-        tmp2[:2000]=0.
-        ax.plot(ts,tmp2,label='put 0 for negative time')
-        ax.set_xlim(-0.5,0.5)
-        ax.set_ylim(-0.5,1.7)
-        ax.grid()
-        ax.legend() 
-        
-        ax = fig1.add_subplot(313)
-        tmp2 = tmp2*(2**2)
-        ax.plot(ts,tmp2,label='multiply the signal by $2^2$')
-        ax.set_xlim(-0.5,0.5)
-        ax.set_ylim(-0.5,1.7)
-        ax.grid()
-        ax.legend()        
-        """
-        
         
         newlength=len(data)*2
         dat1 = self.zeropadding(data,newlength)
         dat2 = np.real(np.fft.ifft(tf))*4.
         
         dat2[len(dat2)/2:]=0.
-
+        
         # highpass filter
         dt = 1./self.fs
         df = 1./((len(dat1)-1)*dt)
-        #dat1 = self.butter_highpass_filter(dat1,2.*df,self.fs)
-        #dat2 = self.butter_highpass_filter(dat2,2.*df,self.fs)
+        dat1 = self.butter_highpass_filter(dat1,2.*df,self.fs)
+        dat2 = self.butter_highpass_filter(dat2,2.*df,self.fs)
         
-        #out = np.fft.ifft(np.fft.fft(dat1)*tf)
         out = np.real(np.fft.ifft(np.fft.fft(dat1)*np.fft.fft(dat2)))
-
+        
         # correction of freq vector
         fmax = 1./(2.*dt)
         self.freq = np.linspace(0.,fmax,len(dat1)/2.)
@@ -186,6 +175,8 @@ class TSCalculator:
         return array[idx],idx
     
     def linear_TF2TS(self,parameters = [],disp=False):
+        magnitude = 7.5
+        ratio = (magnitude-1.)/10.
         if parameters == []: #pure linear calculation
             tfclass = TFC(self.parameters)
             eval('tfclass.tf_'+self.method+'()')
@@ -208,20 +199,25 @@ class TSCalculator:
         self.convolved_vert_resampled = []
         for ii in range(ntf):
             # circular convolution for horizontal tf
-            self.time_series.append(self.circ_convolution(self.inp_signal,self.ft_mirroring(tfclass.tf[ii*2]),disp=disp))
+            self.time_series.append(self.circ_convolution(self.inp_signal,self.ft_mirroring(tfclass.tf[ii*2]),disp=disp)*ratio)
             self.convolved_horz.append(np.fft.fft(self.time_series[-1]))
             self.convolved_horz_resampled.append(self.convolved_horz[-1][::2])
             # circular convolution for vertical tf
-            self.time_series.append(self.circ_convolution(self.inp_signal,self.ft_mirroring(tfclass.tf[ii*2+1]),disp=disp))   
+            self.time_series.append(self.circ_convolution(self.inp_signal,self.ft_mirroring(tfclass.tf[ii*2+1]),disp=disp)*ratio)   
             self.convolved_vert.append(np.fft.fft(self.time_series[-1]))
             self.convolved_vert_resampled.append(self.convolved_vert[-1][::2])
         self.freq_resampled = self.freq[::2]
         self.tfclass = tfclass
             
-    def linear_equivalent_TF2TS(self):
+    def linear_equivalent_TF2TS(self,sublayercriteria = 5.,numiter = 10,conv_level = 0.01,verbose=False):
         """
         Calculation of linear equivalent method for transfer function
         """
+        # set up linear equivalent parameters
+        #sublayercriteria = 5.   # maximum thickness of layer
+        #numiter = 10            # maximum number of iteration
+        #conv_level = 0.01       # convergence limit
+        
         # read G/Gmax and Damping Ratio
         try:
             self.nonlinpar = IOfile.parsing_nonlinear_parameter(self.parameters['GoverGmaxfile'][0])
@@ -229,7 +225,6 @@ class TSCalculator:
             raise KeyError('GoveGmaxfile is not detected! Unable to run linear equivalent calculation!')
         
         # perform sublayer addition
-        sublayercriteria = 5. # maximum thickness of layer
         newhl = []; newvs = []; newqs = []; newvp = []; newqp = []; newdn = []; newst = []; nli = []
         for i in range(len(self.parameters['hl'])-1):
             if self.parameters['hl'][i]>sublayercriteria:
@@ -287,51 +282,190 @@ class TSCalculator:
         
         # initial calculation G/Gmax = 1, damping ratio = 1st value
         Gmax = [self.parameters['dn'][i]*self.parameters['vs'][i]**2 for i in range(len(newpair))]
-        self.linear_TF2TS(parameters=self.parameters)
+        Gerr = np.zeros((len(newpair)))
+        Derr = np.zeros((len(newpair)))
         
-        # check non linearity and update parameter
-        for i in range(len(newpair)):
-            val,idx =  self.find_nearest(self.nonlinpar['nonlin strain'][int(self.parameters['soiltype'][i])],np.max(self.time_series[i*2]))
-            self.parameters['vs'][i]=np.sqrt((Gmax[i]*self.nonlinpar['nonlin G/Gmax'][int(self.parameters['soiltype'][i])][idx])/self.parameters['dn'][i])
-            self.parameters['qs'][i]=1./(2.*self.nonlinpar['nonlin damping'][int(self.parameters['soiltype'][i])][idx]/100.)
-            
-        numiter = 3
+        # print original model information
+        if verbose:
+            print 'iteration %3d'%0
+            print 'Thickness\tVs\t Qs\t convG\t convD'
+            for i in range(len(newpair)):
+                print '%.2f\t\t%.2f\t%.2f\tn/a\tn/a'%(self.parameters['hl'][i],self.parameters['vs'][i],self.parameters['qs'][i])        
+        
         for j in range(numiter):     
+            if verbose:
+                print 'iteration %3d'%(j+1)
+                print 'Thickness\tVs\t Qs\t convG\t convD'
             self.linear_TF2TS(parameters=self.parameters)
             # check non linearity and update parameter
             for i in range(len(newpair)):
-                val,idx =  self.find_nearest(self.nonlinpar['nonlin strain'][int(self.parameters['soiltype'][i])],np.max(self.time_series[i*2]))
-                self.parameters['vs'][i]=np.sqrt((Gmax[i]*self.nonlinpar['nonlin G/Gmax'][int(self.parameters['soiltype'][i])][idx])/self.parameters['dn'][i])
-                self.parameters['qs'][i]=1./(2.*self.nonlinpar['nonlin damping'][int(self.parameters['soiltype'][i])][idx]/100.)
+                # retrieve old G and D
+                oldG = self.parameters['dn'][i]*self.parameters['vs'][i]**2                
+                oldD = 1./(2.*self.parameters['qs'][i])
+                # update G and D parameter
+                if int(self.parameters['soiltype'][i])>=0:
+                    val,idx =  self.find_nearest(self.nonlinpar['nonlin strain'][int(self.parameters['soiltype'][i])-1],np.max(self.time_series[i*2]))
+                    self.parameters['vs'][i]=np.sqrt((Gmax[i]*self.nonlinpar['nonlin G/Gmax'][int(self.parameters['soiltype'][i])-1][idx])/self.parameters['dn'][i])
+                    self.parameters['qs'][i]=1./(2.*self.nonlinpar['nonlin damping'][int(self.parameters['soiltype'][i]-1)][idx]/100.)
+                # retrieve new G and D
+                newG = self.parameters['dn'][i]*self.parameters['vs'][i]**2
+                newD = 1./(2.*self.parameters['qs'][i])
+                # calculate rate of change as the convergence level
+                Gerr[i] = np.abs(newG-oldG)/oldG
+                Derr[i] = np.abs(newD-oldD)/oldD
+                if verbose:
+                    print '%.2f\t\t%.2f\t%.2f\t%.4f\t%.4f'%(self.parameters['hl'][i],self.parameters['vs'][i],self.parameters['qs'][i],Gerr[i],Derr[i])
+            if np.max(Gerr)<=conv_level and np.max(Derr)<=conv_level:
+                if verbose:
+                    print('convergence has been reached! Calculation is stopped!')
+                break
+            
+        self.lastiter = deepcopy(j)+1
+
         # correction of tfpair
         self.parameters['tfPair']=oldpair
         self.parameters['ntf']=len(oldpair)
         self.linear_TF2TS(parameters=self.parameters)
 
-        
-# test calculation
+"""
+# calculation test (circular convolution method)
+print('knopoff calculation')
 method = 'knopoff_sh'
-TSclass00 = TSCalculator('sampleinput_linear_elastic_1layer_halfspace.dat',method)
-TSclass01 = TSCalculator('sampleinput_linear_eq_elastic_1layer_halfspace.dat',method)
+TSclass00 = TSCalculator('sampleinput_linear_elastic_1layer_halfspace.dat',method,verbose=True)
+"""
+"""
+# calculation test (Comparison between linear and linear equivalent)
+fname1 = 'sampleinput_linear_elastic_1layer_halfspace.dat'
+fname2 = 'sampleinput_linear_eq_elastic_1layer_halfspace.dat'
+fname1 = 'ferndale2_parameter.dat'
+fname2 = 'ferndale2_parameter_lineq.dat'
+#print('knopoff calculation')
+#method = 'knopoff_sh'
+#TSclass00 = TSCalculator(fname1,method,verbose=True)
+#TSclass01 = TSCalculator(fname2,method,verbose=True)
+#print('kennet calculation')
+#method2 = 'kennet_sh'
+#TSclass02 = TSCalculator(fname1,method2,verbose=True)
+#TSclass03 = TSCalculator(fname2,method2,verbose=True)
+print('kramer calculation')
+method2 = 'kramer286_sh'
+TSclass04 = TSCalculator(fname1,method2,verbose=True)
+TSclass05 = TSCalculator(fname2,method2,sublayercriteria = 2.,verbose=True)
 
 #plot the outputs
-dt = TSclass01.inp_time[1]-TSclass01.inp_time[0]
+dt = TSclass04.inp_time[1]-TSclass04.inp_time[0]
 fig = plt.figure(figsize=(12,8))
 a = fig.add_subplot(211)
-a.plot(TSclass01.inp_time,TSclass01.inp_signal,label='in')
-a.plot([i*dt for i in range(len(TSclass00.time_series[0]))],TSclass00.time_series[0],label='out linear')
-a.plot([i*dt for i in range(len(TSclass01.time_series[0]))],TSclass01.time_series[0],label='out lin-eq')
+a.plot(TSclass04.inp_time,GT.disp2acc(TSclass04.inp_signal,TSclass04.dt),label='in')
+#a.plot([i*dt for i in range(len(TSclass00.time_series[0]))],TSclass00.time_series[0],label='out linear knopoff')
+#a.plot([i*dt for i in range(len(TSclass01.time_series[0]))],TSclass01.time_series[0],label='out lin-eq knopoff')
+#a.plot([i*dt for i in range(len(TSclass02.time_series[0]))],TSclass02.time_series[0],label='out linear kennet')
+#a.plot([i*dt for i in range(len(TSclass03.time_series[0]))],TSclass03.time_series[0],label='out lin-eq kennet')
+a.plot([i*dt+TSclass04.inp_time[0] for i in range(len(TSclass04.time_series[0]))],GT.disp2acc(TSclass04.time_series[0],TSclass04.dt),label='out linear kramer')
+a.plot([i*dt+TSclass04.inp_time[0] for i in range(len(TSclass05.time_series[0]))],GT.disp2acc(TSclass05.time_series[0],TSclass05.dt),label='out lin-eq kramer')
+a.legend(loc='upper right')
+#a.set_xlim(9.5,12.5)
+#a.set_xlim(5,7)
+a.grid(True)
+
+a = fig.add_subplot(212)
+#a.plot(np.fft.fftfreq(len(TSclass01.inp_signal),dt)[:len(TSclass01.inp_signal)/2],np.abs(np.fft.fft(TSclass01.inp_signal))[:len(TSclass01.inp_signal)/2],label='in')
+#a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass00.time_series[0])),dt)[:len(TSclass00.time_series[0])/2],np.abs(np.fft.fft(TSclass00.time_series[0]))[:len(TSclass00.time_series[0])/2],label='out lin knopoff')
+#a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass01.time_series[0])),dt)[:len(TSclass01.time_series[0])/2],np.abs(np.fft.fft(TSclass01.time_series[0]))[:len(TSclass01.time_series[0])/2],label='out lin-eq knopoff')
+#a.plot(TSclass00.tfclass.freq,np.abs(TSclass00.tfclass.tf[0])*0.01,label='(transfer function)/100. lin knopoff')
+#a.plot(TSclass01.tfclass.freq,np.abs(TSclass01.tfclass.tf[0])*0.01,label='(transfer function)/100. lin-eq knopoff')
+#a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass02.time_series[0])),dt)[:len(TSclass02.time_series[0])/2],np.abs(np.fft.fft(TSclass02.time_series[0]))[:len(TSclass02.time_series[0])/2],label='out lin kennet')
+#a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass03.time_series[0])),dt)[:len(TSclass03.time_series[0])/2],np.abs(np.fft.fft(TSclass03.time_series[0]))[:len(TSclass03.time_series[0])/2],label='out lin-eq kennet')
+#a.plot(TSclass02.tfclass.freq,np.abs(TSclass02.tfclass.tf[0])*0.1,label='(transfer function)/10. lin kennet')
+#a.plot(TSclass03.tfclass.freq,np.abs(TSclass03.tfclass.tf[0])*0.1,label='(transfer function)/10. lin-eq kennet')
+a.plot(np.fft.fftfreq(len(TSclass04.inp_signal),dt)[:len(TSclass04.inp_signal)/2],np.abs(np.fft.fft(TSclass04.inp_signal))[:len(TSclass04.inp_signal)/2],label='in')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass04.time_series[0])),dt)[:len(TSclass04.time_series[0])/2],np.abs(np.fft.fft(TSclass04.time_series[0]))[:len(TSclass04.time_series[0])/2],label='out lin knopoff')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass05.time_series[0])),dt)[:len(TSclass05.time_series[0])/2],np.abs(np.fft.fft(TSclass05.time_series[0]))[:len(TSclass05.time_series[0])/2],label='out lin-eq knopoff')
+a.plot(TSclass04.tfclass.freq,np.abs(TSclass04.tfclass.tf[0])*10.*np.average(np.abs(np.fft.fft(TSclass05.time_series[0]))),label='(transfer function)/%.2e lin knopoff'%(10.*np.average(np.abs(np.fft.fft(TSclass05.time_series[0])))))
+a.plot(TSclass05.tfclass.freq,np.abs(TSclass05.tfclass.tf[0])*10.*np.average(np.abs(np.fft.fft(TSclass05.time_series[0]))),label='(transfer function)/%.2e lin-eq knopoff'%(10.*np.average(np.abs(np.fft.fft(TSclass05.time_series[0])))))
+
 a.legend(loc='best')
+a.set_xscale('log')
+a.set_xlim(0.1,50)
+a.grid()
+"""
+"""
+# Calculation test (sublayering sensitivity)
+method2 = 'kramer286_sh'
+TSclass04 = TSCalculator('sampleinput_linear_elastic_1layer_halfspace.dat',method2,verbose=False)
+TSclass05 = TSCalculator('sampleinput_linear_eq_elastic_1layer_halfspace.dat',method2,sublayercriteria = 5.,numiter = 10,conv_level = 0.01,verbose=False)
+TSclass06 = TSCalculator('sampleinput_linear_eq_elastic_1layer_halfspace.dat',method2,sublayercriteria = 2.,numiter = 10,conv_level = 0.01,verbose=False)
+
+#plot the outputs
+dt = TSclass04.inp_time[1]-TSclass04.inp_time[0]
+fig = plt.figure(figsize=(12,8))
+a = fig.add_subplot(211)
+a.plot(TSclass04.inp_time,TSclass04.inp_signal,label='in')
+a.plot([i*dt for i in range(len(TSclass04.time_series[0]))],TSclass04.time_series[0],label='out linear')
+a.plot([i*dt for i in range(len(TSclass05.time_series[0]))],TSclass05.time_series[0],label='out lin-eq 5m')
+a.plot([i*dt for i in range(len(TSclass06.time_series[0]))],TSclass06.time_series[0],label='out lin-eq 2m')
+
+a.legend(loc='upper right')
 a.set_xlim(9.5,12.5)
 a.grid(True)
 
 a = fig.add_subplot(212)
-a.plot(np.fft.fftfreq(len(TSclass01.inp_signal),dt)[:len(TSclass01.inp_signal)/2],np.abs(np.fft.fft(TSclass01.inp_signal))[:len(TSclass01.inp_signal)/2],label='in')
-a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass00.time_series[0])),dt)[:len(TSclass00.time_series[0])/2],np.abs(np.fft.fft(TSclass00.time_series[0]))[:len(TSclass00.time_series[0])/2],label='out lin')
-a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass01.time_series[0])),dt)[:len(TSclass01.time_series[0])/2],np.abs(np.fft.fft(TSclass01.time_series[0]))[:len(TSclass01.time_series[0])/2],label='out lin-eq')
-a.plot(TSclass00.tfclass.freq,np.abs(TSclass00.tfclass.tf[0])*0.1,label='(transfer function)/10. lin')
-a.plot(TSclass01.tfclass.freq,np.abs(TSclass01.tfclass.tf[0])*0.1,label='(transfer function)/10. lin-eq')
+a.plot(np.fft.fftfreq(len(TSclass04.inp_signal),dt)[:len(TSclass04.inp_signal)/2],np.abs(np.fft.fft(TSclass04.inp_signal))[:len(TSclass04.inp_signal)/2],label='in')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass04.time_series[0])),dt)[:len(TSclass04.time_series[0])/2],np.abs(np.fft.fft(TSclass04.time_series[0]))[:len(TSclass04.time_series[0])/2],label='out lin kramer')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass05.time_series[0])),dt)[:len(TSclass05.time_series[0])/2],np.abs(np.fft.fft(TSclass05.time_series[0]))[:len(TSclass05.time_series[0])/2],label='out lin-eq kramer 5')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass06.time_series[0])),dt)[:len(TSclass06.time_series[0])/2],np.abs(np.fft.fft(TSclass06.time_series[0]))[:len(TSclass06.time_series[0])/2],label='out lin-eq kramer 2')
+a.plot(TSclass04.tfclass.freq,np.abs(TSclass04.tfclass.tf[0])*0.1,label='(transfer function)/10. lin')
+a.plot(TSclass05.tfclass.freq,np.abs(TSclass05.tfclass.tf[0])*0.1,label='(transfer function)/10. lin-eq 5m')
+a.plot(TSclass06.tfclass.freq,np.abs(TSclass06.tfclass.tf[0])*0.1,label='(transfer function)/10. lin-eq 2m')
+
 a.legend(loc='best')
 a.set_xscale('log')
 a.set_xlim(0.1,50)
+a.grid()
+
+fig = plt.figure(figsize=(4,12))
+a = fig.add_subplot(111)
+
+a.plot(TSclass04.parameters['vs'],np.cumsum(TSclass04.parameters['hl']),label='linear')
+a.plot(TSclass05.parameters['vs'],np.cumsum(TSclass05.parameters['hl']),label='5m sublayer')
+a.plot(TSclass06.parameters['vs'],np.cumsum(TSclass06.parameters['hl']),label='2m sublayer')
+a.set_ylim(0,30)
+a.set_xlim(350,410)
+a.set_xlabel('Vs (m/s)')
+a.set_ylabel('depth (m)')
+a.invert_yaxis()
+a.legend(loc='best')
+a.grid()
+"""
+"""
+# Calculation test (borehole outcrop correction test for kennet)
+print('knopoff calculation')
+method = 'knopoff_sh'
+TSclass00 = TSCalculator('sampleinput_linear_elastic_1layer_halfspace.dat',method,verbose=True)
+print('kennet calculation')
+method2 = 'kennet_sh'
+TSclass02 = TSCalculator('sampleinput_linear_elastic_1layer_halfspace.dat',method2,verbose=True)
+
+#plot the outputs
+dt = TSclass00.inp_time[1]-TSclass00.inp_time[0]
+fig = plt.figure(figsize=(12,8))
+a = fig.add_subplot(211)
+a.plot(TSclass00.inp_time,TSclass00.inp_signal,label='in')
+a.plot([i*dt for i in range(len(TSclass00.time_series[0]))],TSclass00.time_series[0],label='out linear knopoff 1')
+a.plot([i*dt for i in range(len(TSclass02.time_series[0]))],TSclass02.time_series[0],label='out linear kennet 1')
+a.legend(loc='upper right')
+#a.set_xlim(9.5,12.5)
+a.set_xlim(4,15)
 a.grid(True)
+
+a = fig.add_subplot(212)
+a.plot(np.fft.fftfreq(len(TSclass00.inp_signal),dt)[:len(TSclass00.inp_signal)/2],np.abs(np.fft.fft(TSclass00.inp_signal))[:len(TSclass00.inp_signal)/2],label='in')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass00.time_series[0])),dt)[:len(TSclass00.time_series[0])/2],np.abs(np.fft.fft(TSclass00.time_series[0]))[:len(TSclass00.time_series[0])/2],label='out lin knopoff')
+a.plot(TSclass00.tfclass.freq,np.abs(TSclass00.tfclass.tf[0])*0.1,label='(transfer function)/10. lin knopoff')
+a.plot(np.fft.fftfreq(len(np.fft.fft(TSclass02.time_series[0])),dt)[:len(TSclass02.time_series[0])/2],np.abs(np.fft.fft(TSclass02.time_series[0]))[:len(TSclass02.time_series[0])/2],label='out lin kennet')
+a.plot(TSclass02.tfclass.freq,np.abs(TSclass02.tfclass.tf[0])*0.1,label='(transfer function)/10. lin kennet')
+a.legend(loc='best')
+a.set_xscale('log')
+a.set_xlim(0.1,50)
+a.grid()
+"""

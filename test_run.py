@@ -81,26 +81,26 @@ time, amp =TSclass.TF2TS()
 
 # creating ricker signal
 from scipy import signal
-points = 2000
-a = 5.0
-inputmotion = signal.ricker(points,a)/100.
+points = 4000
+a = 10.0
+inputmotion = signal.ricker(points,a)/1000.
 inputtime = np.linspace(0.,20.,points)
 with open('ricker.dat','w+') as f:
     for i in range(len(inputtime)):
         f.write('%2.5f %2.5f\n'%(inputtime[i],inputmotion[i]))
 
 
-"""
+
 # creating dirac signal
-points = 2000
+points = 4000
 inputmotion = np.zeros(points)
-inputmotion[512] = 1.
+inputmotion[512] = 0.001
 inputtime = np.linspace(0.,20.,points)
 with open('dirac.dat','w+') as f:
     for i in range(len(inputtime)):
         f.write('%2.5f %2.5f\n'%(inputtime[i],inputmotion[i]))
 
-"""
+
 
 """
 

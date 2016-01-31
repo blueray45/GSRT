@@ -191,6 +191,7 @@ class TFCalculator:
             
         # loop over frequencies and number of tfpair
         self.tf = []
+        
         for tfp in range(ntf):
             hft = np.zeros((fnum),dtype='complex128')
             vft = np.zeros((fnum),dtype='complex128')
@@ -211,7 +212,6 @@ class TFCalculator:
                     
                 # solving linear system
                 As = solve(CORE,Ds)
-                
                 # transfer function
                 if self.inputtype:
                     hft[nf] = (As[tfpair[tfp][0]*2+1][0]-As[tfpair[tfp][0]*2][0])/ \
@@ -1261,29 +1261,19 @@ class TFCalculator:
         q = 1.e+20          # ????
         iang = self.iang    # incidence angle (radians)
         jcas = 0            # jcas <-- 0 means with free surface, 1 means infinite medium
-        if self.inputtype:
-            jcas = 0
-        else:
-            jcas = 1
-        nr = len(tfpair)    # number of receiver given by the pair of input and output motion
-        zr = np.array([tfpair[i][0]*hl for i in range(len(tfpair))])
-                            # depth of receiver given as list (BEWARE OF INCOMPATIBILITY!!)
         
         # defining depth of the top layer (can be modified later)
         th = np.zeros(nlayer+1)
         for i in range(1,nlayer+1):
             th[i] = th[i-1]+hl[i-1]
         
-        nf = len(freq)
         aw = -np.pi/q           # I don't understand! it's basically 0!
-
-        # index of receiver
-        izr = np.array([tfpair[i][0] for i in range(len(tfpair))])
         
         # iterating over frequencies
-        v = np.zeros((nf,nr),dtype='complex128')
         self.tf = []
-        for j in range(ntf):
+        for tfp in range(ntf):
+            hft = np.zeros((len(freq)),dtype='complex128')
+            vft = np.zeros((len(freq)),dtype='complex128')
             for i,fr in enumerate(freq):
                 fr = 0.05*fr if fr==0. else fr  # correction for zero frequency
                 rw = fr*np.pi*2.
@@ -1292,40 +1282,24 @@ class TFCalculator:
                 # calculating complex velocity
                 cvs = vs*((2.*qs*1j)/(2.*qs*1j-1.)) 
                 wb = omega/cvs      # omega for vs
-                wb2 = wb**2
                 
                 wx0 = wb[nlayer-1]*np.sin(iang)
-                wx02 = wx0**2
                 if i==0:
                     f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs,verbose=True)
                 else:
                     f = kensh(jcas,wx0,omega,nlayer,th,dn,cvs)
-                
-                # if mode = 3 :
-                #   1 = upgoing sh wave
-                #   2 = downgoing sh wave
-                wzb = np.zeros_like(cvs)
-                wzb = np.sqrt(wb2-wx02)
-                for li in range(nlayer):
-                    wzb[li] = -wzb[li] if np.imag(wzb[li])>0 else wzb[li]
+                fnew = np.zeros((nlayer*2,1),dtype='complex128')
+                for j in range(nlayer):
+                    fnew[j*2] = -f[j*2+1]
+                    fnew[j*2+1] =f[j*2]
                     
-                for ir in range(nr):
-                    li = izr[ir]
-                    lish1=2*li
-                    lish2=lish1+1
-                    z=zr[0][ir]-th[li]
-                    phassu=np.exp(1j*wzb[li]*z)
-                    phassd=1./phassu
-                    
-                    v[i,ir]= f[lish1]*phassu+f[lish2]*phassd
+                # transfer function
                 if self.inputtype:
-                    htft = v/2.
+                    hft[i] = (fnew[tfpair[tfp][0]*2+1][0]-fnew[tfpair[tfp][0]*2][0])/ \
+                        (2.*fnew[tfpair[tfp][1]*2+1][0])
                 else:
-                    htft = v
-                vtft = np.zeros_like(htft)
-            self.tf.append(htft[:,0])
-            self.tf.append(vtft[:,0])
+                    hft[i] = (fnew[tfpair[tfp][0]*2+1][0]-fnew[tfpair[tfp][0]*2][0])/ \
+                        (fnew[tfpair[tfp][1]*2+1][0]-fnew[tfpair[tfp][1]*2][0])
+            self.tf.append(hft)
+            self.tf.append(vft)
         return self.tf
-        
-
-# debugging
