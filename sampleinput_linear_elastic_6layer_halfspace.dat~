@@ -7,7 +7,7 @@
 #       'non-linear'
 sh-linear-viscoelastic
 # input motion (unit in m/s^2); filetype (ascii)
-dirac.dat ascii disp
+ricker.dat ascii disp
 # input type (outcrop or borehole)
 outcrop
 # angle of indicidence (degree)
@@ -21,10 +21,10 @@ outcrop
 # number of layer
 7
 #thickness(m) Vs(m/s^2) rho(kg/m^3) Qs
-5. 188. 1500. 30.
-5. 300. 1500. 30.
-5. 500. 1500. 30.
-5. 600. 1500. 30.
-5. 700. 1500. 30.
-5. 800. 1500. 30.
+10. 100. 1500. 30.
+15. 125. 1500. 30.
+10. 200. 1500. 30.
+40. 500. 1500. 30.
+50. 500. 1500. 30.
+20. 700. 1500. 30.
 0. 1000. 1500. 5000.

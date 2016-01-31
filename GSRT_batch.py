@@ -618,6 +618,6 @@ with open(fname,'w+') as f:
 globalelapsed = (time.clock()-globalstart)
 print('Total elapsed time : %.4f'%globalelapsed)
     
-print ('\nreading log file\n')
-with open(fname,'r') as f:
-    print f.read()
+#print ('\nreading log file\n')
+#with open(fname,'r') as f:
+#    print f.read()

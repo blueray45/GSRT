@@ -7,21 +7,26 @@
 #       'non-linear'
 sh-linear-equivalent
 # input motion (unit in m/s^2); filetype (ascii); motion type (disp = displacement, vel = velocity, acc = acceleration)
-ferndale2.asc ascii disp
+ricker.dat ascii disp
 # input type (outcrop or borehole)
 outcrop
 # G/Gmax and damping ratio file
 GoverGmax.dat
 # angle of indicidence (degree)
 0.
-# location of source
-2
+# location of source (dummy variable)
+7
 #number of TF relation
 1
 #TF relation (top layer, bottom layer)
-1 2
+1 7
 # number of layer
-2
+7
 #thickness(m) Vs(m/s^2) rho(kg/m^3) Qs Soil_Type
-30. 400. 1500. 30. 1
-0. 1000. 1500. 5000. -1
+5. 188. 1500. 30. 1
+5. 300. 1500. 30. 1
+5. 500. 1500. 30. 1
+5. 600. 1500. 30. 1
+5. 700. 1500. 30. 1
+5. 800. 1500. 30. 1
+0. 1000. 1500. 5000. 0

@@ -1,0 +1,35 @@
+# calculation mode :
+#	    'sh-linear-elastic'
+#       'sh-linear-viscoelastic'
+#       'sh-linear-elastic-adv'
+#       'sh-linear-viscoelastic-adv'
+#       'linear-equivalent'
+#       'non-linear'
+sh-linear-viscoelastic
+# input motion (unit in m/s^2); filetype (ascii); motion type (disp = displacement, vel = velocity, acc = acceleration)
+ferndale2.asc ascii acc
+# input type (outcrop or borehole)
+outcrop
+# G/Gmax and damping ratio file
+#GoverGmax_ferndale2.dat
+# angle of indicidence (degree)
+0.
+# location of source
+10
+#number of TF relation
+1
+#TF relation (top layer, bottom layer)
+1 10
+# number of layer
+10
+#thickness(m) Vs(m/s^2) rho(kg/m^3) Qs Soil_Type
+7. 140. 1500. 20.
+10. 200. 1600. 30. 
+18. 200. 1700. 30.
+25. 380. 1700. 30.
+30. 530. 1800. 60.
+20. 620. 1800. 30.
+30. 550. 1800. 40.
+15. 600. 1800. 50.
+11. 780. 1900. 50.
+0. 780. 1900. 50.

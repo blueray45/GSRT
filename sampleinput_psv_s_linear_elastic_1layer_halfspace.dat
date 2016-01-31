@@ -7,7 +7,7 @@
 #       'non-linear'
 psv-s-linear-elastic-adv
 # input motion (unit in m/s^2); filetype (ascii)
-dirac.dat ascii
+dirac.dat ascii disp
 # input type (outcrop or borehole)
 outcrop
 # angle of indicidence (degree)
