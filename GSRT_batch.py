@@ -31,7 +31,7 @@ def get_processor_info():
 
 if bigmachine:
     # for big machine
-    ntest = 100
+    ntest = 20
     inputfileid = [0,1,2,3,4,5,8,9]
     inputfileidpsv = [6,7]
     inputfileidlayers = [0,3]

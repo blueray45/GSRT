@@ -49,6 +49,13 @@ class TSCalculator:
             self.linear_TF2TS()
             self.lastiter = 1
         
+        if self.parameters['inputmotion'][2]=='acc':
+            for i in range(len(self.time_series)):
+                self.time_series[i] = GT.disp2acc(self.time_series[i],self.dt)
+        elif self.parameters['inputmotion'][2]=='vel':
+            for i in range(len(self.time_series)):
+                self.time_series[i] = GT.disp2vel(self.time_series[i],self.dt)
+        
     def cosine_tapering(self,inp_signal,alpha=0.10):
         window = signal.tukey(len(inp_signal),alpha=alpha,sym=True)
         return inp_signal*window        
