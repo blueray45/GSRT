@@ -10,6 +10,8 @@ to display TF and friends nicely and well done
 import numpy as np
 import pylab as plt
 from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import StrMethodFormatter
+from matplotlib.ticker import FuncFormatter
 import matplotlib.cm as cm
 
 def colorcycle(ncolorinput):
@@ -222,7 +224,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     x = np.asarray(data['x'])
     y = np.asarray(data['y'])
     z = np.asarray(data['z'])
-    
+
     xi,yi = np.logspace(np.log10(x.min()),np.log10(x.max()),nx), np.linspace(y.min(),y.max(),ny)
     xi,yi = np.meshgrid(xi,yi)
     
@@ -374,6 +376,21 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     
     am = a.imshow(zi, vmin=0.1, vmax=z.max(), origin='lower', extent=[x.min(), x.max(), y.min(), y.max()],
              aspect = 'auto',norm=LogNorm())
+             
+    def majortickformat(x, pos):
+        'The two args are the value and tick position'
+        return '%.1f'%(x)
+            
+    def minortickformat(x, pos):
+        'The two args are the value and tick position'
+        strtemp = str(x)
+        if x>=1:
+            if int(strtemp[0])>5:
+                return ''
+            else:
+                return '%d' % (x)
+        else:
+            return ''
     
     a.set_xlabel('Frequency (Hz)')
     a.set_ylabel(ylabel)
@@ -382,8 +399,10 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     a.tick_params(axis='x', which='major', labelsize=11, labelcolor='k')
     a.tick_params(axis='x', which='minor', labelsize=10, labelcolor='grey')
     for axis in [a.xaxis]:
-        axis.set_major_formatter(ScalarFormatter())
-        axis.set_minor_formatter(ScalarFormatter())
+        axis.set_major_formatter(FuncFormatter(majortickformat))
+        axis.set_minor_formatter(FuncFormatter(minortickformat))
+        #axis.set_major_formatter(ScalarFormatter())
+        #axis.set_minor_formatter(ScalarFormatter())
     cb = plt.colorbar(am,label=zlabel)
     cb.locator = MaxNLocator(20)
     cb.formatter = ScalarFormatter()

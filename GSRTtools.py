@@ -7,34 +7,56 @@ Created on Thu Jan 28 04:42:31 2016
 import numpy as np
 
 def disp2vel(data,dt):
-    datafft = np.fft.fft(data)
+    baseline = np.mean(data)
+    datafft = np.fft.fft(data-baseline)
     datafreq= np.fft.fftfreq(len(data),dt)
     #datafreq = [(i+1)*datafreq[1] for i in range(len(datafft))]
-    return np.real(np.fft.ifft(datafft*(2.*np.pi*np.abs(datafreq))))
+    return np.real(np.fft.ifft(datafft*(2.*np.pi*np.abs(datafreq))))/2.+baseline
 
 def vel2acc(data,dt):
-    datafft = np.fft.fft(data)
+    baseline = np.mean(data)
+    datafft = np.fft.fft(data-baseline)
     datafreq= np.fft.fftfreq(len(data),dt)
     #datafreq = [(i+1)*datafreq[1] for i in range(len(datafft))]
-    return np.real(np.fft.ifft(datafft*(2.*np.pi*np.abs(datafreq))))
+    return np.real(np.fft.ifft(datafft*(2.*np.pi*np.abs(datafreq))))/2.+baseline
     
 def acc2vel(data,dt):
-    datafft = np.fft.fft(data)
+    baseline = np.mean(data)
+    datafft = np.fft.fft(data-baseline)
     datafreq= np.fft.fftfreq(len(data),dt)
     datafreq = [(i+1)*datafreq[1] for i in range(len(datafft))]
-    return np.real(np.fft.ifft(datafft/(2.*np.pi*np.abs(datafreq))))*2.
+    return np.real(np.fft.ifft(datafft/(2.*np.pi*np.abs(datafreq))))+baseline
 
 def vel2disp(data,dt):
-    datafft = np.fft.fft(data)
+    baseline = np.mean(data)
+    datafft = np.fft.fft(data-baseline)
     datafreq= np.fft.fftfreq(len(data),dt)
     datafreq = [(i+1)*datafreq[1] for i in range(len(datafft))]
-    return np.real(np.fft.ifft(datafft/(2.*np.pi*np.abs(datafreq))))*2
+    return np.real(np.fft.ifft(datafft/(2.*np.pi*np.abs(datafreq))))+baseline
     
 def acc2disp(data,dt):
     return vel2disp(acc2vel(data,dt),dt)
     
 def disp2acc(data,dt):
     return vel2acc(disp2vel(data,dt),dt)
+    
+def disp2velfreq(datafft,datafreq):
+    return datafft*(2.*np.pi*np.abs(datafreq))
+
+def vel2accfreq(datafft,datafreq):
+    return datafft*(2.*np.pi*np.abs(datafreq))
+    
+def acc2velfreq(datafft,datafreq):
+    return datafft/(2.*np.pi*np.abs(datafreq))
+    
+def vel2dispfreq(datafft,datafreq):
+    return datafft/(2.*np.pi*np.abs(datafreq))
+    
+def acc2dispfreq(datafft,datafreq):
+    return vel2dispfreq(acc2velfreq(datafft,datafreq),datafreq)
+    
+def disp2accfreq(datafft,datafreq):
+    return vel2accfreq(disp2velfreq(datafft,datafreq),datafreq)
     
 #
 #import IOfile

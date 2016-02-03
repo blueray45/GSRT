@@ -78,7 +78,7 @@ from TSCalculator import TSCalculator as TSC
 TSclass = TSC('ricker.dat',fname)
 time, amp =TSclass.TF2TS()
 """
-
+"""
 # creating ricker signal
 from scipy import signal
 points = 4000
@@ -101,7 +101,7 @@ with open('dirac.dat','w+') as f:
         f.write('%2.5f %2.5f\n'%(inputtime[i],inputmotion[i]))
 
 
-
+"""
 """
 
 # creating dirac signal for paolucci
@@ -258,3 +258,16 @@ TFDisplayTools.TFPlot(theclass4, \
 TFDisplayTools.PhasePlot(theclass4, \
     label=['Knopoff PSV-S'],tfid=1)
 """
+
+# test knopoff
+# filename
+fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
+
+# input file reading
+datash = IOfile.parsing_input_file(fname)
+
+# knopoff sh
+print 'TF calculation using simple knopoff approach'
+theclass2 = TFC(datash)
+theclass2.tf_knopoff_sh()
+print 'calculation has been finished!'

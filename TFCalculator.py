@@ -212,6 +212,7 @@ class TFCalculator:
                     
                 # solving linear system
                 As = solve(CORE,Ds)
+
                 # transfer function
                 if self.inputtype:
                     hft[nf] = (As[tfpair[tfp][0]*2+1][0]-As[tfpair[tfp][0]*2][0])/ \

@@ -33,14 +33,17 @@ class TSCalculator:
         self.dt = self.inp_time[1]-self.inp_time[0]
         self.df = 1./((len(self.inp_signal)-1)*self.dt)
         
-        if self.parameters['inputmotion'][2]=='vel':
-            self.inp_signal = GT.vel2disp(self.inp_signal,self.dt)
-            self.inp_signal = self.cosine_tapering(self.inp_signal)
-            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
-        elif self.parameters['inputmotion'][2]=='acc':
-            self.inp_signal = GT.acc2disp(self.inp_signal,self.dt)
-            self.inp_signal = self.cosine_tapering(self.inp_signal)
-            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
+        # baseline correction for input signal
+        self.inp_signal = self.inp_signal-np.mean(self.inp_signal)        
+        
+#        if self.parameters['inputmotion'][2]=='vel':
+#            self.inp_signal = GT.vel2disp(self.inp_signal,self.dt)
+#            self.inp_signal = self.cosine_tapering(self.inp_signal)
+#            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
+#        elif self.parameters['inputmotion'][2]=='acc':
+#            self.inp_signal = GT.acc2disp(self.inp_signal,self.dt)
+#            self.inp_signal = self.cosine_tapering(self.inp_signal)
+#            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
             
         self.method = method
         if self.parameters['modeID']==11 or self.parameters['modeID']==12:
@@ -107,6 +110,12 @@ class TSCalculator:
         # if domain is frequency, then : 
         # data --> DFT of data
         # IR --> DFT of IR
+        df = 1./((1./self.fs)*len(tf))
+        datafreq = [(i+1)*df for i in range(len(tf))]
+        if self.parameters['inputmotion'][2]=='acc':
+            tf = GT.acc2dispfreq(tf,datafreq)
+        elif self.parameters['inputmotion'][2]=='vel':
+            tf = GT.vel2dispfreq(tf,datafreq)
         
         newlength=len(data)*2
         dat1 = self.zeropadding(data,newlength)
@@ -190,7 +199,7 @@ class TSCalculator:
         else:
             tfclass = TFC(parameters)
             eval('tfclass.tf_'+self.method+'()')
-        
+
         # frequency list from original inp_signal
         self.inp_freq = np.fft.fftfreq(len(self.inp_signal),d=self.inp_time[1]-self.inp_time[0])
         
