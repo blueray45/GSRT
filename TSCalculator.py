@@ -72,7 +72,16 @@ class TSCalculator:
                 self.time_series[i] = GT.disp2vel(self.time_series[i],self.dt)
         
     def cosine_tapering(self,inp_signal,alpha=0.10):
-        window = signal.tukey(len(inp_signal),alpha=alpha,sym=True)
+        #window = signal.tukey(len(inp_signal),alpha=alpha,sym=True)
+        window = np.zeros_like(inp_signal)
+        N = len(inp_signal)
+        for i in range(N):
+            if i < alpha*(N-1)/2:
+                window[i]=0.5*(1.+np.cos(np.pi*(((2.*i)/(alpha*(N-1)))-1.)))
+            elif i > (N-1)*(1.-alpha/2):
+                window[i]=0.5*(1.+np.cos(np.pi*(((2.*i)/(alpha*(N-1)))-((2./alpha)+1.))))
+            else:
+                window[i]=1.0
         return inp_signal*window        
         
     def zeropadding(self,inp,newlength):
