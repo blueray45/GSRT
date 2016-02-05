@@ -10,7 +10,8 @@ to display TF and friends nicely and well done
 import numpy as np
 import pylab as plt
 from matplotlib.ticker import ScalarFormatter
-from matplotlib.ticker import StrMethodFormatter
+# from matplotlib.ticker import StrMethodFormatter
+from matplotlib.ticker import FormatStrFormatter
 from matplotlib.ticker import FuncFormatter
 import matplotlib.cm as cm
 
