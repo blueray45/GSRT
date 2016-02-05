@@ -20,3 +20,25 @@ mode = ['sh-linear-elastic',
         'psv-linear-equivalent',
         'non-linear']
         
+def modescan(inp):
+    if inp.find('sh')>0:
+        case = '1'
+    elif inp.find('psv_s')>0:
+        case = '2'
+    elif inp.find('psv_p')>0:
+        case = '3'
+    else:
+        case = '0'
+    if inp.find('viscoelastic')>0:
+        elastic = '2'
+    else: # elastic
+        elastic = '1'
+    if inp.find('kramer'):
+        method = '2'
+    elif inp.find('knopoff'):
+        method = '3'
+    elif inp.find('kennet'):
+        method = '4'
+    else:
+        method = '1'    # method auto
+    return case+elastic+method

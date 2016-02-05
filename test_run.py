@@ -258,7 +258,7 @@ TFDisplayTools.TFPlot(theclass4, \
 TFDisplayTools.PhasePlot(theclass4, \
     label=['Knopoff PSV-S'],tfid=1)
 """
-
+"""
 # test knopoff
 # filename
 fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
@@ -269,5 +269,6 @@ datash = IOfile.parsing_input_file(fname)
 # knopoff sh
 print 'TF calculation using simple knopoff approach'
 theclass2 = TFC(datash)
-theclass2.tf_knopoff_sh()
+#theclass2.tf_knopoff_sh()
 print 'calculation has been finished!'
+"""

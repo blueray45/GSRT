@@ -71,7 +71,7 @@ with open(fname,'w+') as f:
     # 001 - check python modules
     print('001 - modules test')
     modulesList = ['numpy','copy','scipy','commondata','IOfile','GSRTtools',
-                   'TFCalculator','TSCalculator','TFDisplayTools','requests',
+                   'TFCalculator','TSCalculator','requests',
                    'os']
     try:
         for mid in modulesList:

@@ -18,11 +18,23 @@ class TSCalculator:
     """
     class which manages calculation of TimeSeries (TS) given the parameter file and input file
     """
-    def __init__(self,parfile,method='knopoff_sh',sublayercriteria = 5.,numiter = 10,conv_level = 0.01,verbose=False):
+    def __init__(self,parfile,method='auto',sublayercriteria = 5.,numiter = 10,conv_level = 0.01,verbose=False):
         # parameter file initialization
         self.parfile = parfile
         # read file parameter
         self.parameters = IOfile.parsing_input_file(parfile)
+        # method is automatically defined
+        if method=='auto':
+            if self.parameters['type']=='PSV':
+                self.method = 'knopoff_psv_adv'
+            else:
+                if self.parameters['nlayer']<=5:
+                    if self.parameters['iang']==0.:
+                        self.method='knopoff_sh'
+                    else:
+                        self.method='knopoff_sh_adv'
+                else:
+                    self.method = 'kennet_sh'
         # checking input file
         if self.parameters['inputmotion'][1]=='ascii':
             self.inp_time,self.inp_signal = IOfile.read_ascii_seismogram(self.parameters['inputmotion'][0])

@@ -52,25 +52,29 @@ def parsing_input_file(fname):
                 break
         
         modeID = cd.mode.index(mode)
+        modeCalc = cd.modescan(mode)
+        
         data['modeID'] = modeID
         hl = []; vs = []; dn = []; qs = []
         vp = []; qp = [];
         tfPair = []; soiltype = [];
         layerID=1; TFID=1
-        #if mode.lower()==cd.mode[0] or mode.lower()==cd.mode[1] or \
-        #    mode.lower()==cd.mode[2] or mode.lower()==cd.mode[3] or\
-        #    mode.lower()==cd.mode[4] or mode.lower()==cd.mode[5] or \
-        #    mode.lower()==cd.mode[6] or mode.lower()==cd.mode[7]:
+        
+        
 
         if modeID<13:
             if modeID<5:
                 blockSeq = [1,2,11,3,4,5,6,7,8]
+                data['type']='SH'
             elif modeID<11:
                 blockSeq = [1,2,11,3,4,5,6,7,9]
+                data['type']='PSV'
             elif modeID==11:
                 blockSeq = [1,2,11,10,3,4,5,6,7,12]
+                data['type']='SH'
             elif modeID==12:
                 blockSeq = [1,2,11,10,3,4,5,6,7,13]
+                data['type']='PSV'
             IDSeq = 1
             for line in f:
                 if not comment_check(line):
@@ -109,7 +113,8 @@ def parsing_input_file(fname):
                             hl.append(shl)
                             vs.append(svs)
                             dn.append(sdn)
-                            qs.append(9999. if modeID==0 or modeID==2 else sqs)
+                            #qs.append(9999. if modeID==0 or modeID==2 else sqs)
+                            qs.append(9999. if modeCalc[1]=='1' else sqs)
                             layerID+=1
                             if layerID>data['nlayer']:
                                 data['hl']=hl
@@ -124,8 +129,10 @@ def parsing_input_file(fname):
                             vp.append(svp)
                             vs.append(svs)
                             dn.append(sdn)
-                            qp.append(9999. if modeID==5 or modeID==7 else sqp)
-                            qs.append(9999. if modeID==5 or modeID==7 else sqs)
+                            #qp.append(9999. if modeID==5 or modeID==7 else sqp)
+                            #qs.append(9999. if modeID==5 or modeID==7 else sqs)
+                            qp.append(9999. if modeCalc[1]=='1' else sqp)
+                            qs.append(9999. if modeCalc[1]=='1' else sqs)
                             layerID+=1
                             if layerID>data['nlayer']:
                                 data['hl']=hl
@@ -142,7 +149,8 @@ def parsing_input_file(fname):
                             hl.append(shl)
                             vs.append(svs)
                             dn.append(sdn)
-                            qs.append(9999. if modeID==0 or modeID==2 else sqs)
+                            #qs.append(9999. if modeID==0 or modeID==2 else sqs)
+                            qs.append(9999. if modeCalc[1]=='1' else sqs)
                             soiltype.append(int(st))
                             layerID+=1
                             if layerID>data['nlayer']:
@@ -159,8 +167,10 @@ def parsing_input_file(fname):
                             vp.append(svp)
                             vs.append(svs)
                             dn.append(sdn)
-                            qp.append(9999. if modeID==5 or modeID==7 else sqp)
-                            qs.append(9999. if modeID==5 or modeID==7 else sqs)
+                            #qp.append(9999. if modeID==5 or modeID==7 else sqp)
+                            #qs.append(9999. if modeID==5 or modeID==7 else sqs)
+                            qp.append(9999. if modeCalc[1]=='1' else sqp)
+                            qs.append(9999. if modeCalc[1]=='1' else sqs)
                             soiltype.append(int(st))
                             layerID+=1
                             if layerID>data['nlayer']:

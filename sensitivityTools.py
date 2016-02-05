@@ -177,38 +177,36 @@ sensitivityTools(fname2,sensitivity='incidence angle phase',method='tf_knopoff_p
 """
 # incidence angle
 print('incidence angle sensitivity analysis for transfer function plot')
-fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
-sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[0.,87.,88],method='tf_kramer286_sh')
-sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[0.,87.,88],method='tf_knopoff_sh')
-sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[0.,87.,88],method='tf_knopoff_sh_adv')
-sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[0.,87.,88],method='tf_kennet_sh')
+#fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
+#sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[87.,89.,88],method='tf_kramer286_sh')
+#sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[87.,89.,88],method='tf_knopoff_sh')
+#sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[89.5,90.,88],method='tf_knopoff_sh_adv')
+#sensitivityTools(fname,sensitivity='incidence angle',senslinspace=[89.5,90.,88],method='tf_kennet_sh')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='incidence angle',senslinspace=[0.,87.,88],method='tf_knopoff_psv_adv')
 """
-"""
+
 # Thickness of layer
 print('thickness sensitivity analysis')
 fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
-sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_kramer286_sh')
-sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_knopoff_sh')
-sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_knopoff_sh_adv')
-sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_kennet_sh')
-fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
-sensitivityTools(fname2,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_knopoff_psv_adv')
-"""
+#sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_kramer286_sh')
+sensitivityTools(fname,sensitivity='thickness',senslinspace=[1000.,10000.,100],method='tf_knopoff_sh')
+#sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_knopoff_sh_adv')
+#sensitivityTools(fname,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_kennet_sh')
+#fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
+#sensitivityTools(fname2,sensitivity='thickness',senslinspace=[1.,100.,100],method='tf_knopoff_psv_adv')
 
 """
 # Vs of first layer
 print('Vs sensitivity analysis')
-fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
-sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_kramer286_sh')
-sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_knopoff_sh')
-sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_knopoff_sh_adv')
-sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_kennet_sh')
+#fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
+#sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_kramer286_sh')
+#sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_knopoff_sh')
+#sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_knopoff_sh_adv')
+#sensitivityTools(fname,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_kennet_sh')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='vs 1',senslinspace=[50.,1000.,81],method='tf_knopoff_psv_adv')
 """
-
 """
 # Vp of first layer
 print('Vp sensitivity analysis')
@@ -221,29 +219,28 @@ print('Qp sensitivity analysis')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='qp 1',senslinspace=[1.,100.,81],method='tf_knopoff_psv_adv')
 """
-
 """
 # Qs of first layer
 print('Qs sensitivity analysis')
-fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
-sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_kramer286_sh')
-sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_knopoff_sh')
-sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_knopoff_sh_adv')
-sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_kennet_sh')
+#fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
+#sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_kramer286_sh')
+#sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_knopoff_sh')
+#sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_knopoff_sh_adv')
+#sensitivityTools(fname,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_kennet_sh')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='qs 1',senslinspace=[1.,100.,81],method='tf_knopoff_psv_adv')
 """
-
+"""
 # Density of first layer
 print('Density sensitivity analysis')
-fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
-sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_kramer286_sh')
-sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_knopoff_sh')
-sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_knopoff_sh_adv')
-sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_kennet_sh')
+#fname = 'sampleinput_linear_elastic_1layer_halfspace_adv.dat'
+#sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_kramer286_sh')
+#sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_knopoff_sh')
+#sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_knopoff_sh_adv')
+#sensitivityTools(fname,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_kennet_sh')
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
 sensitivityTools(fname2,sensitivity='dn 1',senslinspace=[500.,3000.,81],method='tf_knopoff_psv_adv')
-
+"""
 """
 # incidence angle vectorial
 print('incidence angle sensitivity analysis for transfer function plot')
