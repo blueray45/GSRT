@@ -31,12 +31,14 @@ def get_processor_info():
 
 if bigmachine:
     # for big machine
-    ntest = 20
-    inputfileid = [0,1,2,3,4,5,8,9]
+    ntest = 5
+#    inputfileid = [0,1,2,3,4,5,8,9]
+    inputfileid = [0,2,3,5,8,9]
     inputfileidpsv = [6,7]
-    inputfileidlayers = [0,3]
-    inputfileidlayerspsv = [6,7]
-    nlayer = np.logspace(0,3,16)
+    inputfileidlayers = [0,2]
+    inputfileidlayerspsv = [6]
+#    nlayer = np.logspace(0,3,16)
+    nlayer = np.logspace(0,2,11)
 else:
     # for small machine
     ntest = 1
