@@ -24,17 +24,17 @@ class TSCalculator:
         # read file parameter
         self.parameters = IOfile.parsing_input_file(parfile)
         # method is automatically defined
-        if method=='auto':
-            if self.parameters['type']=='PSV':
-                self.method = 'knopoff_psv_adv'
-            else:
-                if self.parameters['nlayer']<=5:
-                    if self.parameters['iang']==0.:
-                        self.method='knopoff_sh'
-                    else:
-                        self.method='knopoff_sh_adv'
-                else:
-                    self.method = 'kennet_sh'
+#        if method=='auto':
+#            if self.parameters['type']=='PSV':
+#                self.method = 'knopoff_psv_adv'
+#            else:
+#                if self.parameters['nlayer']<=5:
+#                    if self.parameters['iang']==0.:
+#                        self.method='knopoff_sh'
+#                    else:
+#                        self.method='knopoff_sh_adv'
+#                else:
+#                    self.method = 'kennet_sh'
         # checking input file
         if self.parameters['inputmotion'][1]=='ascii':
             self.inp_time,self.inp_signal = IOfile.read_ascii_seismogram(self.parameters['inputmotion'][0])
@@ -57,10 +57,31 @@ class TSCalculator:
 #            self.inp_signal = self.cosine_tapering(self.inp_signal)
 #            self.inp_signal = self.butter_highpass_filter(self.inp_signal,2.*self.df,self.fs)
             
-        self.method = method
         if self.parameters['modeID']==11 or self.parameters['modeID']==12:
+            # method is automatically defined
+            if method=='auto':
+                if self.parameters['type']=='PSV':
+                    self.method = 'knopoff_psv_adv'
+                else:
+                    if self.parameters['iang']==0.:
+                        self.method = 'kramer_sh'
+                    else:
+                        self.method = 'knopoff_sh_adv'
+            else:
+                self.method = method
             self.linear_equivalent_TF2TS(sublayercriteria,numiter,conv_level,verbose)
         else:
+            # method is automatically defined
+            if method=='auto':
+                if self.parameters['type']=='PSV':
+                    self.method = 'knopoff_psv_adv'
+                else:
+                    if self.parameters['iang']==0.:
+                        self.method = 'knopoff_sh'
+                    else:
+                        self.method = 'knopoff_sh_adv'
+            else:
+                self.method = method
             self.linear_TF2TS()
             self.lastiter = 1
         

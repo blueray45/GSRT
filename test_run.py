@@ -14,6 +14,7 @@ import commondata as cd
 import IOfile
 from TFCalculator import TFCalculator as TFC
 import TFDisplayTools
+from TSCalculator import TSCalculator as TSC
 
 # single layer test case
 """
@@ -26,53 +27,108 @@ fname4 = 'GoverGmax.dat'
 # input file reading
 datash = IOfile.parsing_input_file(fname)
 datapsvs = IOfile.parsing_input_file(fname2)
-datapsvp = IOfile.parsing_input_file(fname3)
+# datapsvp = IOfile.parsing_input_file(fname3)
 datanonlin = IOfile.parsing_nonlinear_parameter(fname4,True)
+
+def modnlayer(data,nlayer):
+    nl = nlayer
+    data['sourceloc']=nl
+    data['nlayer']=nl+1
+    data['tfPair'][0][1]=nl
+    newhl = []; newvs = []; newdn = []; newqs = []; newvp = []; newqp = []
+    newsoiltype = []
+    for j in range(nl):
+        newhl.append(data['hl'][0]/nl)
+        newvs.append(data['vs'][0])
+        newqs.append(data['qs'][0])
+        newdn.append(data['dn'][0])
+    newhl.append(data['hl'][-1])
+    newvs.append(data['vs'][-1])
+    newqs.append(data['qs'][-1])
+    newdn.append(data['dn'][-1])
+    data['hl']=newhl
+    data['vs']=newvs
+    data['qs']=newqs
+    data['dn']=newdn
+    try:
+        for j in range(nl):
+            newvp.append(data['vp'][0])
+            newqp.append(data['qp'][0])
+        newvp.append(data['vp'][-1])
+        newqp.append(data['qp'][-1])
+        data['vp']=newvp
+        data['qp']=newqp
+    except:
+        pass
+    try:
+        for j in range(nl):
+            newsoiltype.append(data['soiltype'][0])
+        newsoiltype.append(data['soiltype'][-1])
+        data['soiltype']=newsoiltype
+    except:
+        pass
+    return data
+
+nlayer = 1000
+datash = modnlayer(datash,nlayer)
+datapsvs = modnlayer(datapsvs,nlayer)
+
+@profile
+def calc_kramer(data):
+    theclass = TFC(data)
+    theclass.tf_kramer286_sh()
+    return theclass
+
+@profile
+def calc_knopoff_sh(data):
+    theclass = TFC(data)
+    theclass.tf_knopoff_sh()
+    return theclass
+
+@profile
+def calc_knopoff_sh_adv(data):
+    theclass = TFC(data)
+    theclass.tf_knopoff_sh_adv()
+    return theclass
+
+@profile
+def calc_knopoff_psv(data):
+    theclass = TFC(data)
+    theclass.tf_knopoff_psv_adv()
+    return theclass
+
+@profile
+def calc_kennet(data):
+    theclass = TFC(data)
+    theclass.tf_kennet_sh()
+    return theclass
 
 # kramer
 print 'TF calculatoin using kramer approach'
-theclass1 = TFC(datash)
-theclass1.tf_kramer286_sh() # check/verify kramer calculation
+theclass1 = calc_kramer(datash)
 print 'calculation has been finished!'
 
 # knopoff sh
 print 'TF calculation using simple knopoff approach'
-theclass2 = TFC(datash)
-theclass2.tf_knopoff_sh()
+theclass2 = calc_knopoff_sh(datash)
 print 'calculation has been finished!'
 
 # knopoff sh complete
 print 'TF calculation using complete knopoff sh approach'
-theclass3 = TFC(datash)
-theclass3.tf_knopoff_sh_adv()
+theclass3 = calc_knopoff_sh_adv(datash)
 print 'calculation has been finished!'
 
 # knopoff psv-s
 print 'TF calculation using complete knopoff psv-s approach'
-theclass4 = TFC(datapsvs)
-theclass4.tf_knopoff_psv_adv()
-print theclass4.tf[1][19]
-print 'calculation has been finished!'
-
-# knopoff psv-p
-print 'TF calculation using knopoff psv-p approach'
-theclass11 = TFC(datapsvp)
-theclass11.tf_knopoff_psv_adv()
+theclass4 = calc_knopoff_psv(datapsvs)
 print 'calculation has been finished!'
 
 # kennet sh
 print 'TF calculation using kennet sh method'
-theclass5 = TFC(datash)
-theclass5.tf_kennet_sh()
+theclass5 = calc_kennet(datash)
 print 'calculation has been finished!'
 
-# kennet psv-s
-print 'TF calculation using kennet psv-s approach'
-theclass10 = TFC(datapsvs)
-theclass10.tf_kennett_psv()
-print 'calculation has been finished!'
 """
-
 """
 from TSCalculator import TSCalculator as TSC
 TSclass = TSC('ricker.dat',fname)
@@ -227,7 +283,11 @@ TFDisplayTools.TFPlot(theclass4,theclass10, \
     
 TFDisplayTools.PhasePlot(theclass4,theclass10, \
     label=['Knopoff PSV','Kennet PSV'])
+    
+TFDisplayTools.TFPlot(theclass3,theclass6,theclass8, \
+    label=['1 layer','2 layers','6 layers'])
 """
+
 """
 # kennet sh
 print 'TF calculation using kennet sh method'
@@ -272,3 +332,31 @@ theclass2 = TFC(datash)
 #theclass2.tf_knopoff_sh()
 print 'calculation has been finished!'
 """
+
+fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
+fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
+    
+# kramer
+print 'TS calculatoin using kramer approach'
+TS1 = TSC(fname,method='kramer286_sh')
+print 'calculation has been finished!'
+
+# knopoff sh
+print 'TS calculation using simple knopoff approach'
+TS2 = TSC(fname,method='knopoff_sh')
+print 'calculation has been finished!'
+
+# knopoff sh complete
+print 'TS calculation using complete knopoff sh approach'
+TS3 = TSC(fname,method='knopoff_sh_adv')
+print 'calculation has been finished!'
+
+# knopoff psv-s
+print 'TS calculation using complete knopoff psv-s approach'
+TS4 = TSC(fname2,method='knopoff_psv_adv')
+print 'calculation has been finished!'
+
+# kennet sh
+print 'TS calculation using kennet sh method'
+TS5 = TSC(fname,method='kennet_sh')
+print 'calculation has been finished!'

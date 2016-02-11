@@ -59,6 +59,7 @@ class TFCalculator:
         else:
             self.freq = freq
         
+    # @profile
     def tf_kramer286_sh(self):
         """
         Calculate transfer function using direct and simple implementation from Kramer Book page 286
@@ -79,7 +80,7 @@ class TFCalculator:
         B = np.zeros_like(Gc)
         eta = np.zeros_like(self.qs)
         amp = np.zeros((len(self.freq)),dtype='complex128')
-        
+        # print('CORE size of kramer is %d'%B.nbytes) 
         Yi = np.complex(0.,1.)
         A[0,:] = np.complex(1.,0.)
         B[0,:] = np.complex(1.,0.)
@@ -116,8 +117,11 @@ class TFCalculator:
 
             self.tf.append(amp)
             self.tf.append(vtf)
+
+        # memory allocation analysis
         return self.tf
-        
+    
+    # @profile
     def tf_knopoff_sh(self):
         """
         Calculate Transfer function for SH-wave vertical incident using knopoff method (1964)
@@ -171,7 +175,7 @@ class TFCalculator:
         
         # building core matrix
         CORE = zeros((nlayer*2,nlayer*2),dtype='complex128')
-        
+        # print('CORE knopoff_sh size %d'%CORE.nbytes)
         # free surface constraints
         
         CORE[0,0] = 1
@@ -225,6 +229,7 @@ class TFCalculator:
             self.tf.append(vft)
         return self.tf
         
+    # @profile
     def tf_knopoff_sh_adv(self):
         """
         
@@ -288,7 +293,8 @@ class TFCalculator:
         # Dispacement and transfer function initialization
         
         fnum = len(freq)
-        
+        # CORE = np.zeros((nlayer*2,nlayer*2),dtype='complex128')
+        # print('CORE knopoff_sh_adv size %d'%CORE.nbytes)
         # loop over frequencies and tfpair
         self.tf = []
         for tfp in range(ntf):
@@ -341,6 +347,7 @@ class TFCalculator:
             self.tf.append(vft)
         return self.tf
         
+    # @profile
     def tf_knopoff_psv_adv(self):
         """
         
@@ -351,13 +358,13 @@ class TFCalculator:
         ntf = self.ntf
         tfpair = self.tfpair
         nlayer = self.nlayer
-        hl = self.hl
-        vs = self.vs
-        dn = self.dn
-        qs = self.qs
-        freq = self.freq
-        vp = self.vp
-        qp = self.qp
+        hl = np.array(self.hl)
+        vs = np.array(self.vs)
+        dn = np.array(self.dn)
+        qs = np.array(self.qs)
+        freq = np.array(self.freq)
+        vp = np.array(self.vp)
+        qp = np.array(self.qp)
         comp = self.comp
         iang = self.iang        
         
@@ -444,7 +451,8 @@ class TFCalculator:
         # Dispacement and transfer function initialization
         
         fnum = len(freq)
-        
+        # CORE = np.zeros((nlayer*4,nlayer*4),dtype='complex128')
+        # print('CORE knopoff PSV size %d'%CORE.nbytes)
         # loop over frequencies and tfpair
         self.tf = []
         for tfp in range(ntf):
@@ -561,6 +569,7 @@ class TFCalculator:
             self.tf.append(vtft)
         return self.tf
     
+
     def tf_kennett_psv(self):
         """
         porting from geopsy based on kennet formalism
@@ -1119,7 +1128,8 @@ class TFCalculator:
                     ((a + d*np.cos(iangP[0])*np.cos(iangS[1])/(alpha[0]*beta[1]))*H*p2))/D
         else:
             raise IOError('Unsupported type of calculation!')
-                         
+                      
+    # @profile
     def tf_kennet_sh(self):
         """
         porting from geopsy based on kennet formalism
@@ -1214,6 +1224,7 @@ class TFCalculator:
             ftupsh = np.zeros((nlayer),dtype='complex128')
             ftdosh = np.zeros((nlayer),dtype='complex128')
             cfwave = np.zeros((nlayer*2),dtype='complex128')
+
             if jcas==0:
                 # case jcas=0 free surface reflection
                 ftupsh[nc-1] = 1.
@@ -1269,7 +1280,10 @@ class TFCalculator:
             th[i] = th[i-1]+hl[i-1]
         
         aw = -np.pi/q           # I don't understand! it's basically 0!
-        
+
+        # COREmat = np.zeros((nlayer*15),dtype='complex128')
+        # print('CORE kennet size %d'%COREmat.nbytes)
+
         # iterating over frequencies
         self.tf = []
         for tfp in range(ntf):
