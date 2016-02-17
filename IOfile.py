@@ -10,6 +10,7 @@ GNU Lisence
 """
 
 import commondata as cd
+import os
 
 def parsing_input_file(fname):
     """
@@ -42,8 +43,12 @@ def parsing_input_file(fname):
     data = {}
     data['parfile'] = fname
     data['sensitifity'] = False
+    fnamePart = fname.split(os.sep)
+    namePath = ''
+    if len(fnamePart)>1:
+        for i in range(len(fnamePart)-1):
+            namePath += fnamePart[i]+os.sep
     with open(fname) as f:
-        
         for line in f:
             if not comment_check(line):
                 mode = blockreader(1,line)        
@@ -79,13 +84,15 @@ def parsing_input_file(fname):
             for line in f:
                 if not comment_check(line):
                     if blockSeq[IDSeq]==2:
-                        data['inputmotion'] = blockreader(blockSeq[IDSeq],line)
+                        tmp = blockreader(blockSeq[IDSeq],line)
+                        tmp[0] = namePath+tmp[0]
+                        data['inputmotion'] = tmp
                         IDSeq+=1
                     elif blockSeq[IDSeq]==11:
                         data['inputtype'] = blockreader(2,line)
                         IDSeq+=1
                     elif blockSeq[IDSeq]==10:
-                        data['GoverGmaxfile'] = blockreader(2,line)
+                        data['GoverGmaxfile'] = [namePath+blockreader(2,line)[0]]
                         IDSeq+=1
                     elif blockSeq[IDSeq]==3:
                         data['iang'] = blockreader(blockSeq[IDSeq],line)

@@ -38,7 +38,7 @@ if bigmachine:
     inputfileidlayers = [0,2]
     inputfileidlayerspsv = [6]
 #    nlayer = np.logspace(0,3,16)
-    nlayer = np.logspace(0,2,11)
+    nlayer = np.logspace(0,3,16)
 else:
     # for small machine
     ntest = 1

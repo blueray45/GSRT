@@ -64,7 +64,7 @@ class TSCalculator:
                     self.method = 'knopoff_psv_adv'
                 else:
                     if self.parameters['iang']==0.:
-                        self.method = 'kramer_sh'
+                        self.method = 'kramer286_sh'
                     else:
                         self.method = 'knopoff_sh_adv'
             else:

@@ -9,6 +9,7 @@ Created on Thu Nov 26 19:55:33 2015
 import numpy as np
 import pylab as plt
 import commondata as cd
+import os
 
 # test IOfile
 import IOfile
@@ -17,12 +18,13 @@ import TFDisplayTools
 from TSCalculator import TSCalculator as TSC
 
 # single layer test case
-"""
+
 # filename
-fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
-fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
-fname3 = 'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat'
-fname4 = 'GoverGmax.dat'
+basedir = 'Example/Input'
+fname = os.path.join(basedir,'sampleinput_linear_elastic_1layer_halfspace.dat')
+fname2 =  os.path.join(basedir,'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat')
+fname3 =  os.path.join(basedir,'sampleinput_psv_p_linear_elastic_1layer_halfspace.dat')
+fname4 =  os.path.join(basedir,'GoverGmax.dat')
 
 # input file reading
 datash = IOfile.parsing_input_file(fname)
@@ -69,35 +71,35 @@ def modnlayer(data,nlayer):
         pass
     return data
 
-nlayer = 1000
+nlayer = 1
 datash = modnlayer(datash,nlayer)
 datapsvs = modnlayer(datapsvs,nlayer)
 
-@profile
+#@profile
 def calc_kramer(data):
     theclass = TFC(data)
     theclass.tf_kramer286_sh()
     return theclass
 
-@profile
+#@profile
 def calc_knopoff_sh(data):
     theclass = TFC(data)
     theclass.tf_knopoff_sh()
     return theclass
 
-@profile
+#@profile
 def calc_knopoff_sh_adv(data):
     theclass = TFC(data)
     theclass.tf_knopoff_sh_adv()
     return theclass
 
-@profile
+#@profile
 def calc_knopoff_psv(data):
     theclass = TFC(data)
     theclass.tf_knopoff_psv_adv()
     return theclass
 
-@profile
+#@profile
 def calc_kennet(data):
     theclass = TFC(data)
     theclass.tf_kennet_sh()
@@ -128,7 +130,14 @@ print 'TF calculation using kennet sh method'
 theclass5 = calc_kennet(datash)
 print 'calculation has been finished!'
 
-"""
+
+TFDisplayTools.TFPlot(theclass1,theclass2,theclass3,theclass5,theclass4, \
+    label=['Kramer SH','Knopoff SH','Knopoff SH2','Kennet SH','Knopoff PSV'])
+    
+TFDisplayTools.PhasePlot(theclass1,theclass2,theclass3,theclass5,theclass4, \
+    label=['Kramer SH','Knopoff SH','Knopoff SH2','Kennet SH','Knopoff PSV'])
+
+
 """
 from TSCalculator import TSCalculator as TSC
 TSclass = TSC('ricker.dat',fname)
@@ -332,7 +341,7 @@ theclass2 = TFC(datash)
 #theclass2.tf_knopoff_sh()
 print 'calculation has been finished!'
 """
-
+"""
 fname = 'sampleinput_linear_elastic_1layer_halfspace.dat'
 fname2 = 'sampleinput_psv_s_linear_elastic_1layer_halfspace.dat'
     
@@ -360,3 +369,4 @@ print 'calculation has been finished!'
 print 'TS calculation using kennet sh method'
 TS5 = TSC(fname,method='kennet_sh')
 print 'calculation has been finished!'
+"""

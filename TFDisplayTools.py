@@ -15,6 +15,25 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib.ticker import FuncFormatter
 import matplotlib.cm as cm
 
+def majortickformat(x, pos):
+    'The two args are the value and tick position'
+    return '%.1f'%(x)
+        
+def minortickformat(x, pos):
+    'The two args are the value and tick position'
+    strtemp = str(x)
+    if x>=1:
+        if int(strtemp[0])>5:
+            return ''
+        else:
+            return '%d' % (x)
+    else:
+        return ''
+        
+def cbtickformat(x,pos):
+    'Tick formatter for colorbar'
+    return '%.1f'%x
+
 def colorcycle(ncolorinput):
     ncolor = 256
     clist = cm.rainbow(np.arange(ncolor))
@@ -75,6 +94,10 @@ def velocityprofileplot(inp,a2,cclist):
                 
         a2.set_ylim(np.min(depth),np.max(depth)) 
         a2.set_xlim(min(xmin)-0.05,max(xmax)+0.05)
+        
+        plt.xticks(rotation='vertical')        
+        
+        
         a2.legend(loc='best',fancybox=True,framealpha=0.5)
         a2.invert_yaxis()
         a2.grid(True)
@@ -99,7 +122,7 @@ def TFPlot(*arg,**kwargs):
         label = ['']*(len(arg))
     # create new figure is axis name is not given
     if axname==None:
-        f = plt.figure(figsize=(14.,7.),dpi=300)
+        f = plt.figure(figsize=(10.,5.),dpi=300)
         
         # create default color cycle
         cclist = colorcycle(len(arg))        
@@ -121,9 +144,9 @@ def TFPlot(*arg,**kwargs):
     a.minorticks_on()
     a.tick_params(axis='both', which='major', labelsize=11, labelcolor='k')
     a.tick_params(axis='both', which='minor', labelsize=10, labelcolor='grey')
-    for axis in [a.xaxis, a.yaxis]:
-        axis.set_major_formatter(ScalarFormatter())
-        axis.set_minor_formatter(ScalarFormatter())
+    for axis in [a.xaxis]:
+        axis.set_major_formatter(FuncFormatter(majortickformat))
+        axis.set_minor_formatter(FuncFormatter(minortickformat))
     
     # check number of input
     #if len(arg)%2!=0:
@@ -166,7 +189,7 @@ def PhasePlot(*arg,**kwargs):
         label = ['']*(len(arg))
     # create new figure is axis name is not given
     if axname==None:
-        f = plt.figure(figsize=(14.,7.),dpi=300)
+        f = plt.figure(figsize=(10.,5.),dpi=300)
         
         # create default color cycle
         cclist = colorcycle(len(arg))    
@@ -188,9 +211,9 @@ def PhasePlot(*arg,**kwargs):
     #a.minorticks_on()
     a.tick_params(axis='both', which='major', labelsize=11, labelcolor='k')
     #a.tick_params(axis='both', which='minor', labelsize=10, labelcolor='grey')
-    for axis in [a.xaxis, a.yaxis]:
-        axis.set_major_formatter(ScalarFormatter())
-        #axis.set_minor_formatter(ScalarFormatter())
+    for axis in [a.xaxis]:
+        axis.set_major_formatter(FuncFormatter(majortickformat))
+        axis.set_minor_formatter(FuncFormatter(minortickformat))
     
     # check length of each pairs and plot data
     minx = []; maxx = []; miny = []; maxy = []
@@ -214,7 +237,7 @@ def PhasePlot(*arg,**kwargs):
     a.legend(loc='best',fancybox=True,framealpha=0.5)
     f.tight_layout()
     
-def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplification',cmap='rainbow'):
+def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplification',yscale='lin',cmap='rainbow'):
     import scipy.interpolate
     from matplotlib.colors import LogNorm
     from matplotlib.ticker import MaxNLocator
@@ -233,7 +256,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     zi = scipy.interpolate.griddata((x,y),z,(xi,yi),method='linear')
     
     # plot the data
-    f = plt.figure(figsize=(16.,8.),dpi=300)
+    f = plt.figure(figsize=(10.,5.),dpi=300)
     
     # plot velocity profile   
     a2= f.add_subplot(1,5,5)
@@ -369,6 +392,7 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     a2.set_xlabel('Velocity (km/s)')
     a2.set_ylabel('Depth (m)')
     a2.set_title('Velocity profile')
+    plt.xticks(rotation='vertical') 
     
     # plot data
     a = f.add_subplot(1,5,(1,4))
@@ -377,37 +401,25 @@ def SpectroPlot(data,nx=100,ny=100,ylabel='incidence angle',zlabel='Amplificatio
     
     am = a.imshow(zi, vmin=0.1, vmax=z.max(), origin='lower', extent=[x.min(), x.max(), y.min(), y.max()],
              aspect = 'auto',norm=LogNorm())
-             
-    def majortickformat(x, pos):
-        'The two args are the value and tick position'
-        return '%.1f'%(x)
-            
-    def minortickformat(x, pos):
-        'The two args are the value and tick position'
-        strtemp = str(x)
-        if x>=1:
-            if int(strtemp[0])>5:
-                return ''
-            else:
-                return '%d' % (x)
-        else:
-            return ''
     
     a.set_xlabel('Frequency (Hz)')
     a.set_ylabel(ylabel)
     a.set_xscale('log')
+    if yscale=='log':
+        print yscale
+        a.set_yscale('log')
     a.minorticks_on()
     a.tick_params(axis='x', which='major', labelsize=11, labelcolor='k')
     a.tick_params(axis='x', which='minor', labelsize=10, labelcolor='grey')
     for axis in [a.xaxis]:
         axis.set_major_formatter(FuncFormatter(majortickformat))
         axis.set_minor_formatter(FuncFormatter(minortickformat))
-        #axis.set_major_formatter(ScalarFormatter())
-        #axis.set_minor_formatter(ScalarFormatter())
     cb = plt.colorbar(am,label=zlabel)
-    cb.locator = MaxNLocator(20)
-    cb.formatter = ScalarFormatter()
+    cb.locator = MaxNLocator(10)
+#    cb.formatter = ScalarFormatter()
+    cb.formatter = FuncFormatter(cbtickformat)
     cb.update_ticks()
+    f.tight_layout()
     
 
 """
